@@ -34,6 +34,7 @@ export interface Resource {
   size?: string;
   aiTopics?: string[];
   courseId: string;
+  category: string;
 }
 
 export interface Test {
