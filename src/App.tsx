@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import Index from "./pages/Index";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminUsersPage from "./pages/AdminUsersPage";
+import AdminStudentsPage from "./pages/AdminStudentsPage";
 import AdminCoursesPage from "./pages/AdminCoursesPage";
 import InstructorDashboard from "./pages/InstructorDashboard";
 import InstructorCoursesPage from "./pages/InstructorCoursesPage";
@@ -29,6 +31,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/students" element={<AdminStudentsPage />} />
             <Route path="/admin/courses" element={<AdminCoursesPage />} />
             <Route path="/admin/*" element={<AdminDashboard />} />
             <Route path="/instructor" element={<InstructorDashboard />} />
