@@ -36,6 +36,7 @@ const mockResources: Resource[] = [
     size: '2.4 MB',
     aiTopics: ['Asosiy tushunchalar', 'Nazariya', 'Kirish'],
     courseId: '1',
+    category: 'Dasturlash',
   },
   {
     id: '2',
@@ -46,6 +47,7 @@ const mockResources: Resource[] = [
     size: '5.1 MB',
     aiTopics: ['Ma\'ruza', 'Vizual materiallar'],
     courseId: '1',
+    category: 'Web Development',
   },
   {
     id: '3',
@@ -56,6 +58,7 @@ const mockResources: Resource[] = [
     size: '124 MB',
     aiTopics: ['Amaliyot', 'Video dars', 'Namuna'],
     courseId: '1',
+    category: 'Backend',
   },
 ];
 

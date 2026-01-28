@@ -31,6 +31,7 @@ const mockResources: Resource[] = [
     size: '2.4 MB',
     aiTopics: ['Asosiy tushunchalar', 'Nazariya', 'Kirish'],
     courseId: '1',
+    category: 'Dasturlash',
   },
   {
     id: '2',
@@ -41,6 +42,7 @@ const mockResources: Resource[] = [
     size: '5.1 MB',
     aiTopics: ['Ma\'ruza', 'Vizual materiallar'],
     courseId: '1',
+    category: 'Web Development',
   },
   {
     id: '3',
@@ -51,6 +53,7 @@ const mockResources: Resource[] = [
     size: '124 MB',
     aiTopics: ['Amaliyot', 'Video dars', 'Namuna'],
     courseId: '1',
+    category: 'Backend',
   },
 ];
 
@@ -118,9 +121,11 @@ export const ResourceViewer: React.FC<ResourceViewerProps> = ({
                     {resource.title}
                   </h4>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                    <span>{resource.size}</span>
+                    <span className="bg-muted px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                      {resource.category}
+                    </span>
                     <span>•</span>
-                    <span>{new Date(resource.uploadedAt).toLocaleDateString('uz-UZ')}</span>
+                    <span>{resource.size}</span>
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
