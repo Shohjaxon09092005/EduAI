@@ -29,6 +29,7 @@ interface SidebarProps {
 const adminLinks = [
   { icon: LayoutDashboard, label: "Boshqaruv paneli", path: "/admin" },
   { icon: Users, label: "Foydalanuvchilar", path: "/admin/users" },
+  { icon: GraduationCap, label: "Talabalar", path: "/admin/students" },
   { icon: BookOpen, label: "Kurslar", path: "/admin/courses" },
   { icon: BarChart3, label: "Statistika", path: "/admin/statistics" },
   { icon: Settings, label: "Sozlamalar", path: "/admin/settings" },
