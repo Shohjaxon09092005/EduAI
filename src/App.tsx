@@ -15,6 +15,8 @@ import InstructorDashboard from "./pages/InstructorDashboard";
 import InstructorCoursesPage from "./pages/InstructorCoursesPage";
 import InstructorResourcesPage from "./pages/InstructorResourcesPage";
 import InstructorTestsPage from "./pages/InstructorTestsPage";
+import InstructorAnalyticsPage from "./pages/InstructorAnalyticsPage";
+import InstructorStudentsPage from "./pages/InstructorStudentsPage";
 import StudentDashboard from "./pages/StudentDashboard";
 import StudentCoursesPage from "./pages/StudentCoursesPage";
 import StudentResourcesPage from "./pages/StudentResourcesPage";
@@ -45,6 +47,8 @@ const App = () => (
             <Route path="/instructor/courses" element={<InstructorCoursesPage />} />
             <Route path="/instructor/resources" element={<InstructorResourcesPage />} />
             <Route path="/instructor/tests" element={<InstructorTestsPage />} />
+            <Route path="/instructor/analytics" element={<InstructorAnalyticsPage />} />
+            <Route path="/instructor/students" element={<InstructorStudentsPage />} />
             <Route path="/instructor/*" element={<InstructorDashboard />} />
             <Route path="/student" element={<StudentDashboard />} />
             <Route path="/student/courses" element={<StudentCoursesPage />} />
