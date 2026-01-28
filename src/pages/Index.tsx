@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { GraduationCap, BookOpen, Users, Sparkles, ChevronRight, Shield, Zap, Trophy } from 'lucide-react';

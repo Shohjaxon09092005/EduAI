@@ -1,12 +1,11 @@
-import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  Users, 
-  BookOpen, 
-  FileText, 
-  Settings, 
+import { NavLink, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  FileText,
+  Settings,
   ChevronLeft,
   GraduationCap,
   Trophy,
@@ -16,10 +15,10 @@ import {
   Map,
   MessageSquare,
   Bell,
-  LogOut
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { UserRole } from '@/types';
+  LogOut,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { UserRole } from "@/types";
 
 interface SidebarProps {
   role: UserRole;
@@ -55,19 +54,27 @@ const studentLinks = [
 
 const getLinksByRole = (role: UserRole) => {
   switch (role) {
-    case 'admin': return adminLinks;
-    case 'instructor': return instructorLinks;
-    case 'student': return studentLinks;
-    default: return [];
+    case "admin":
+      return adminLinks;
+    case "instructor":
+      return instructorLinks;
+    case "student":
+      return studentLinks;
+    default:
+      return [];
   }
 };
 
 const getRoleTitle = (role: UserRole) => {
   switch (role) {
-    case 'admin': return "Admin Panel";
-    case 'instructor': return "Domla Panel";
-    case 'student': return "Talaba Panel";
-    default: return "Panel";
+    case "admin":
+      return "Admin Panel";
+    case "instructor":
+      return "Domla Panel";
+    case "student":
+      return "Talaba Panel";
+    default:
+      return "Panel";
   }
 };
 
@@ -97,13 +104,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, onToggle }) => {
                   <GraduationCap className="w-6 h-6 text-primary-foreground" />
                 </div>
                 <div>
-                  <h1 className="font-display font-bold text-lg gradient-text">EduAI</h1>
-                  <p className="text-xs text-muted-foreground">{getRoleTitle(role)}</p>
+                  <h1 className="font-display font-bold text-lg gradient-text">
+                    EduAI
+                  </h1>
+                  <p className="text-xs text-muted-foreground">
+                    {getRoleTitle(role)}
+                  </p>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
-          
+
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -131,13 +142,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, onToggle }) => {
               >
                 <NavLink
                   to={link.path}
-                  className={({ isActive }) => cn(
-                    "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200",
-                    "hover:bg-primary/10",
-                    isActive 
-                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25" 
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200",
+                      "hover:bg-primary/10",
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                        : "text-muted-foreground hover:text-foreground",
+                    )
+                  }
                 >
                   <link.icon className="w-5 h-5 flex-shrink-0" />
                   <AnimatePresence mode="wait">
@@ -164,10 +177,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, onToggle }) => {
             <Bell className="w-5 h-5 flex-shrink-0" />
             {isOpen && <span className="font-medium">Bildirishnomalar</span>}
           </button>
-          <button className="flex items-center gap-3 px-3 py-3 w-full rounded-xl text-destructive hover:bg-destructive/10 transition-all duration-200">
-            <LogOut className="w-5 h-5 flex-shrink-0" />
-            {isOpen && <span className="font-medium">Chiqish</span>}
-          </button>
+          <NavLink to='/'>
+            <button className="flex items-center gap-3 px-3 py-3 w-full rounded-xl text-destructive hover:bg-destructive/10 transition-all duration-200">
+              <LogOut className="w-5 h-5 flex-shrink-0" />
+              {isOpen && <span className="font-medium">Chiqish</span>}
+            </button>
+          </NavLink>
         </div>
       </div>
     </motion.aside>

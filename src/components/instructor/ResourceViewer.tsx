@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   FileText, 
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Resource } from '@/types';
+import React from 'react';
 
 interface ResourceViewerProps {
   resources: Resource[];
