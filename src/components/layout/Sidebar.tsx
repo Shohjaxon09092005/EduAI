@@ -29,7 +29,6 @@ interface SidebarProps {
 const adminLinks = [
   { icon: LayoutDashboard, label: "Boshqaruv paneli", path: "/admin" },
   { icon: Users, label: "Foydalanuvchilar", path: "/admin/users" },
-  { icon: GraduationCap, label: "Talabalar", path: "/admin/students" },
   { icon: BookOpen, label: "Kurslar", path: "/admin/courses" },
   { icon: BarChart3, label: "Statistika", path: "/admin/statistics" },
   { icon: Settings, label: "Sozlamalar", path: "/admin/settings" },
@@ -40,7 +39,8 @@ const instructorLinks = [
   { icon: BookOpen, label: "Mening kurslarim", path: "/instructor/courses" },
   { icon: FolderOpen, label: "Resurslar", path: "/instructor/resources" },
   { icon: ClipboardList, label: "Testlar", path: "/instructor/tests" },
-  { icon: Users, label: "Talabalar", path: "/instructor/students" },
+  { icon: GraduationCap, label: "Talabalar", path: "/instructor/students" },
+
   { icon: BarChart3, label: "Tahlil", path: "/instructor/analytics" },
 ];
 
@@ -178,7 +178,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, onToggle }) => {
             <Bell className="w-5 h-5 flex-shrink-0" />
             {isOpen && <span className="font-medium">Bildirishnomalar</span>}
           </button>
-          <NavLink to='/'>
+          <NavLink to="/">
             <button className="flex items-center gap-3 px-3 py-3 w-full rounded-xl text-destructive hover:bg-destructive/10 transition-all duration-200">
               <LogOut className="w-5 h-5 flex-shrink-0" />
               {isOpen && <span className="font-medium">Chiqish</span>}

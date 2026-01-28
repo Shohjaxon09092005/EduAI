@@ -159,7 +159,7 @@ const AdminStudentsPage: React.FC = () => {
   };
 
   return (
-    <DashboardLayout role="admin" title="Talabalar" userName="Admin">
+    <DashboardLayout role="instructor" title="Talabalar" userName="O'qituvchi">
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -175,7 +175,7 @@ const InstructorResourcesPage: React.FC = () => {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl z-50 p-4"
+                className="fixed left-1/4 top-10 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl z-50 p-4"
               >
                 <div className="glass-card p-6">
                   <div className="flex items-center justify-between mb-6">

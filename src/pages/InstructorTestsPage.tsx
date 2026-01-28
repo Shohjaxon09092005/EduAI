@@ -356,7 +356,7 @@ const InstructorTestsPage: React.FC = () => {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg z-50"
+                className="fixed left-1/3 top-1/4 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg z-50"
               >
                 <div className="glass-card p-6">
                   <h2 className="font-display font-bold text-2xl mb-4">Yangi test yaratish</h2>
