@@ -9,6 +9,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import AdminStudentsPage from "./pages/AdminStudentsPage";
 import AdminCoursesPage from "./pages/AdminCoursesPage";
+import AdminStatisticsPage from "./pages/AdminStatisticsPage";
+import AdminSettingsPage from "./pages/AdminSettingsPage";
 import InstructorDashboard from "./pages/InstructorDashboard";
 import InstructorCoursesPage from "./pages/InstructorCoursesPage";
 import InstructorResourcesPage from "./pages/InstructorResourcesPage";
@@ -17,6 +19,8 @@ import StudentDashboard from "./pages/StudentDashboard";
 import StudentCoursesPage from "./pages/StudentCoursesPage";
 import StudentResourcesPage from "./pages/StudentResourcesPage";
 import StudentTestsPage from "./pages/StudentTestsPage";
+import StudentProgressPage from "./pages/StudentProgressPage";
+import StudentSettingsPage from "./pages/StudentSettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +38,8 @@ const App = () => (
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/students" element={<AdminStudentsPage />} />
             <Route path="/admin/courses" element={<AdminCoursesPage />} />
+            <Route path="/admin/statistics" element={<AdminStatisticsPage />} />
+            <Route path="/admin/settings" element={<AdminSettingsPage />} />
             <Route path="/admin/*" element={<AdminDashboard />} />
             <Route path="/instructor" element={<InstructorDashboard />} />
             <Route path="/instructor/courses" element={<InstructorCoursesPage />} />
@@ -44,6 +50,8 @@ const App = () => (
             <Route path="/student/courses" element={<StudentCoursesPage />} />
             <Route path="/student/resources" element={<StudentResourcesPage />} />
             <Route path="/student/tests" element={<StudentTestsPage />} />
+            <Route path="/student/progress" element={<StudentProgressPage />} />
+            <Route path="/student/settings" element={<StudentSettingsPage />} />
             <Route path="/student/*" element={<StudentDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
