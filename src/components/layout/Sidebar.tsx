@@ -46,7 +46,7 @@ const instructorLinks = [
 const studentLinks = [
   { icon: LayoutDashboard, label: "Boshqaruv paneli", path: "/student" },
   { icon: BookOpen, label: "Kurslarim", path: "/student/courses" },
-  { icon: Map, label: "O'rganish yo'li", path: "/student/learning-path" },
+  { icon: Map, label: "Resurslar bilan o'rganish yo'li", path: "/student/learning-path" },
   { icon: ClipboardList, label: "Testlar", path: "/student/tests" },
   { icon: Trophy, label: "Yutuqlar", path: "/student/achievements" },
   { icon: BarChart3, label: "Progress", path: "/student/progress" },
