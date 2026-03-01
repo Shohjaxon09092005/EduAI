@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { CourseCard } from '@/components/ui/CourseCard';
@@ -6,94 +7,39 @@ import { Course } from '@/types';
 import { 
   BookOpen, 
   Search, 
-  Filter,
   Grid3x3,
-  List,
-  Plus
+  List
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getCourses } from '@/lib/api';
 
-const mockCourses: Course[] = [
-  {
-    id: '1',
-    title: 'JavaScript asoslari',
-    description: 'JavaScript dasturlash tilining asoslarini o\'rganing. Variables, functions, objects va boshqalar.',
-    instructorId: 'inst1',
-    instructorName: 'Alisher Karimov',
-    totalLessons: 24,
-    completedLessons: 16,
-    progress: 65,
-    category: 'Dasturlash',
-    difficulty: 'beginner',
-  },
-  {
-    id: '2',
-    title: 'React frameworki',
-    description: 'Modern web ilovalarni React yordamida yarating. Components, hooks, state management.',
-    instructorId: 'inst1',
-    instructorName: 'Dilshod Nazarov',
-    totalLessons: 18,
-    completedLessons: 6,
-    progress: 30,
-    category: 'Web Development',
-    difficulty: 'intermediate',
-  },
-  {
-    id: '3',
-    title: 'TypeScript asoslari',
-    description: 'TypeScript bilan type-safe kod yozing. Interfaces, types, generics va advanced patterns.',
-    instructorId: 'inst2',
-    instructorName: 'Zarina Toshmatova',
-    totalLessons: 16,
-    completedLessons: 0,
-    progress: 0,
-    category: 'Dasturlash',
-    difficulty: 'intermediate',
-  },
-  {
-    id: '4',
-    title: 'Python asoslari',
-    description: 'Python dasturlash tilining asoslarini o\'rganing. Data structures, OOP, file handling.',
-    instructorId: 'inst3',
-    instructorName: 'Bobur Rahimov',
-    totalLessons: 20,
-    completedLessons: 20,
-    progress: 100,
-    category: 'Dasturlash',
-    difficulty: 'beginner',
-  },
-  {
-    id: '5',
-    title: 'Node.js va Backend Development',
-    description: 'Server-side dasturlash. Express.js, REST APIs, databases va authentication.',
-    instructorId: 'inst1',
-    instructorName: 'Alisher Karimov',
-    totalLessons: 22,
-    completedLessons: 8,
-    progress: 36,
-    category: 'Backend',
-    difficulty: 'advanced',
-  },
-  {
-    id: '6',
-    title: 'Machine Learning kirish',
-    description: 'Sun\'iy intellekt va ML asoslari. Python, numpy, pandas, scikit-learn.',
-    instructorId: 'inst4',
-    instructorName: 'Nodira Abdullayeva',
-    totalLessons: 30,
-    completedLessons: 0,
-    progress: 0,
-    category: 'AI/ML',
-    difficulty: 'advanced',
-  },
-];
+// NOTE: We previously used a mocked list for layout/development purposes.  
+// Once the backend is available we fetch real data from the API instead.
 
 const StudentCoursesPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'in-progress' | 'completed'>('all');
+  
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const filteredCourses = mockCourses.filter(course => {
+  // state coming from backend
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const { tokens } = useAuth();
+
+  useEffect(() => {
+    setLoading(true);
+    getCourses()
+      .then((data) => setCourses(data))
+      .catch((err) => {
+        console.error('Failed to load courses', err);
+        // optionally handle unauthorized by redirecting to login or showing message
+      })
+      .finally(() => setLoading(false));
+  }, [tokens]);
+
+  const filteredCourses = courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          course.description.toLowerCase().includes(searchQuery.toLowerCase());
     
@@ -110,9 +56,9 @@ const StudentCoursesPage: React.FC = () => {
   };
 
   const stats = {
-    enrolled: mockCourses.length,
-    inProgress: mockCourses.filter(c => c.progress > 0 && c.progress < 100).length,
-    completed: mockCourses.filter(c => c.progress === 100).length,
+    enrolled: courses.length,
+    inProgress: courses.filter(c => c.progress && c.progress > 0 && c.progress < 100).length,
+    completed: courses.filter(c => c.progress === 100).length,
   };
 
   return (
@@ -262,7 +208,9 @@ const StudentCoursesPage: React.FC = () => {
             ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
             : 'grid-cols-1'
         )}>
-          {filteredCourses.map((course, index) => (
+          {loading ? (
+            <p className="col-span-full text-center py-12">Yuklanmoqda...</p>
+          ) : filteredCourses.map((course, index) => (
             <motion.div
               key={course.id}
               initial={{ opacity: 0, scale: 0.9 }}
@@ -278,7 +226,7 @@ const StudentCoursesPage: React.FC = () => {
           ))}
         </div>
 
-        {filteredCourses.length === 0 && (
+        {!loading && filteredCourses.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

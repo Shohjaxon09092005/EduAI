@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   BookOpen, 
   Users, 
@@ -36,10 +37,15 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   variant = 'student',
   onAction 
 }) => {
+  const navigate = useNavigate();
   const progress = course.progress || 0;
   const completionPercentage = course.totalLessons > 0 
     ? Math.round((course.completedLessons / course.totalLessons) * 100) 
     : 0;
+
+  const handleViewCourse = () => {
+    navigate(`/course/${course.id}`);
+  };
 
   return (
     <motion.div
@@ -119,7 +125,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => onAction?.('start', course.id)}
+              onClick={handleViewCourse}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:shadow-lg hover:shadow-primary/25 transition-all"
             >
               <Play className="w-4 h-4" />
@@ -141,7 +147,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => onAction?.('view', course.id)}
+                onClick={handleViewCourse}
                 className="px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
               >
                 <BarChart3 className="w-4 h-4" />
@@ -154,7 +160,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => onAction?.('view', course.id)}
+                onClick={handleViewCourse}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:shadow-lg hover:shadow-primary/25 transition-all"
               >
                 Ko'rish

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AITest } from '@/components/student/AITest';
 import { Question } from '@/types';
 import { cn } from '@/lib/utils';
+import { getTests } from '@/lib/api';
 import { 
   Trophy,
   Clock,
@@ -160,9 +161,13 @@ const StudentTestsPage: React.FC = () => {
   const [selectedTest, setSelectedTest] = useState<AvailableTest | null>(null);
   const [showTest, setShowTest] = useState(false);
 
-  const availableTests = mockAvailableTests.filter(test => test.status === 'available');
-  const attemptedTests = mockAvailableTests.filter(test => test.status === 'attempted');
-  const completedTests = mockAvailableTests.filter(test => test.status === 'completed');
+  const [tests, setTests] = useState<AvailableTest[]>([]);
+
+  // derive categories
+  const availableTests = tests.filter(test => test.status === 'available');
+  const attemptedTests = tests.filter(test => test.status === 'attempted');
+  const completedTests = tests.filter(test => test.status === 'completed');
+
 
   const handleStartTest = (test: AvailableTest) => {
     setSelectedTest(test);
@@ -189,6 +194,24 @@ const StudentTestsPage: React.FC = () => {
     if (score >= 70) return 'text-warning';
     return 'text-destructive';
   };
+
+  useEffect(() => {
+    getTests()
+      .then(apiTests => {
+        // map to AvailableTest shape with default 'available'
+        const mapped: AvailableTest[] = apiTests.map(t => ({
+          id: t.id,
+          title: t.title,
+          course: t.courseTitle || '',
+          questions: t.questions?.length || 0,
+          duration: t.duration,
+          difficulty: t.difficulty === 'easy' ? 'beginner' : t.difficulty === 'medium' ? 'intermediate' : 'advanced',
+          status: 'available',
+        }));
+        setTests(mapped);
+      })
+      .catch(err => console.error('load tests', err));
+  }, []);
 
   if (showTest && selectedTest) {
     return (

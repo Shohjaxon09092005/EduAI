@@ -23,6 +23,27 @@ export interface Course {
   completedLessons: number;
   category: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
+  lessons?: Lesson[];
+}
+
+export interface Lesson {
+  id: string;
+  title: string;
+  description: string;
+  courseId: string;
+  order: number;
+  duration: number; // in minutes
+  resources?: LessonResource[];
+}
+
+export interface LessonResource {
+  id: string;
+  title: string;
+  type: 'video' | 'pdf' | 'pptx' | 'docx' | 'link';
+  url?: string;
+  file?: string;
+  description: string;
+  order: number;
 }
 
 export interface Resource {
@@ -41,6 +62,7 @@ export interface Test {
   id: string;
   title: string;
   courseId: string;
+  courseTitle?: string;
   questions: Question[];
   duration: number; // in minutes
   aiGenerated: boolean;

@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { CourseCard } from '@/components/ui/CourseCard';
+import { CourseManagementPanel } from '@/components/CourseManagementPanel';
 import { Course } from '@/types';
 import { 
   BookOpen, 
@@ -14,60 +16,124 @@ import {
   Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  getCourses,
+  createCourse,
+  updateCourse,
+  deleteCourse,
+  getCategories,
+  Category,
+  CoursePayload,
+} from '@/lib/api';
 
-const mockInstructorCourses: Course[] = [
-  {
-    id: '1',
-    title: 'JavaScript asoslari',
-    description: 'JavaScript dasturlash tilining asoslarini o\'rganing. Variables, functions, objects va boshqalar.',
-    instructorId: 'current-instructor',
-    instructorName: 'Siz',
-    totalLessons: 24,
-    completedLessons: 0,
-    category: 'Dasturlash',
-    difficulty: 'beginner',
-  },
-  {
-    id: '5',
-    title: 'Node.js va Backend Development',
-    description: 'Server-side dasturlash. Express.js, REST APIs, databases va authentication.',
-    instructorId: 'current-instructor',
-    instructorName: 'Siz',
-    totalLessons: 22,
-    completedLessons: 0,
-    category: 'Backend',
-    difficulty: 'advanced',
-  },
-  {
-    id: '7',
-    title: 'MongoDB bilan ishlash',
-    description: 'NoSQL database MongoDB bilan ishlashni o\'rganing. CRUD operations, aggregation, indexes.',
-    instructorId: 'current-instructor',
-    instructorName: 'Siz',
-    totalLessons: 15,
-    completedLessons: 0,
-    category: 'Database',
-    difficulty: 'intermediate',
-  },
-];
+// the course list is loaded from the API instead of using mocks
 
 const InstructorCoursesPage: React.FC = () => {
+  const { tokens, user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'manage'>('grid');
+  const [showModal, setShowModal] = useState(false);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [categories, setCategories] = useState<Category[]>([]);
 
-  const filteredCourses = mockInstructorCourses.filter(course => 
+  const [formData, setFormData] = useState<Partial<CoursePayload>>({
+    title: '',
+    description: '',
+    category_id: undefined,
+    difficulty: 'beginner',
+    total_lessons: 0,
+  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // load courses and category list
+  useEffect(() => {
+    if (!tokens) return;
+    setLoading(true);
+    Promise.all([getCourses(), getCategories()])
+      .then(([data, cats]) => {
+        if (user?.id) {
+          const uid = String(user.id);
+          setCourses(data.filter(c => c.instructorId === uid));
+        } else {
+          setCourses(data);
+        }
+        setCategories(cats);
+      })
+      .catch(err => console.error('load failed', err))
+      .finally(() => setLoading(false));
+  }, [tokens, user]);
+
+  const filteredCourses = courses.filter(course => 
     course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     course.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleCourseAction = (action: string, courseId: string) => {
     console.log(`Action: ${action} on course: ${courseId}`);
+    const target = courses.find(c => c.id === courseId);
+    if (!target) return;
     if (action === 'edit') {
-      // Navigate to course editor
+      setEditingId(courseId);
+      setFormData({
+        title: target.title,
+        description: target.description,
+        category_id: categories.find(cat => cat.name === target.category)?.id,
+        difficulty: target.difficulty,
+        total_lessons: target.totalLessons,
+      });
+      setShowModal(true);
     } else if (action === 'view') {
-      // Navigate to course analytics
+      // navigate to analytics if implemented
+    } else if (action === 'delete') {
+      if (window.confirm("Kursni o'chirmoqchimisiz?")) {
+        deleteCourse(courseId)
+          .then(() => setCourses(c => c.filter(x => x.id !== courseId)))
+          .catch(err => console.error('delete failed', err));
+      }
     }
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setFormData({
+      title: '',
+      description: '',
+      category_id: undefined,
+      difficulty: 'beginner',
+      total_lessons: 0,
+    });
+  };
+
+  const handleSave = () => {
+    if (!tokens) return;
+    const payload: CoursePayload = {
+      title: formData.title || '',
+      description: formData.description || '',
+      category_id: formData.category_id,
+      difficulty: formData.difficulty as any,
+      total_lessons: formData.total_lessons || 0,
+      // include thumbnail file if one has been selected
+      thumbnail: formData.thumbnail,
+    };
+    console.log('handleSave payload', payload);
+    const op = editingId
+      ? updateCourse(editingId, payload, user?.id)
+      : createCourse(payload, user?.id);
+    op
+      .then(c => {
+        if (editingId) {
+          setCourses(cs => cs.map(x => (x.id === editingId ? c : x)));
+        } else {
+          setCourses(cs => [c, ...cs]);
+        }
+      })
+      .catch(err => console.error('save failed', err))
+      .finally(() => {
+        setShowModal(false);
+        resetForm();
+      });
   };
 
   return (
@@ -83,7 +149,7 @@ const InstructorCoursesPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Jami kurslar</p>
-                <p className="text-2xl font-bold mt-1">{mockInstructorCourses.length}</p>
+                <p className="text-2xl font-bold mt-1">{courses.length}</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
                 <BookOpen className="w-6 h-6 text-primary" />
@@ -149,7 +215,10 @@ const InstructorCoursesPage: React.FC = () => {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => {
+                resetForm();
+                setShowModal(true);
+              }}
               className="flex items-center gap-2 px-6 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:shadow-lg hover:shadow-primary/25 transition-all"
             >
               <Plus className="w-5 h-5" />
@@ -166,6 +235,7 @@ const InstructorCoursesPage: React.FC = () => {
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted/50 text-muted-foreground hover:text-foreground'
                 )}
+                title="Grid ko'rinish"
               >
                 <Grid3x3 className="w-5 h-5" />
               </button>
@@ -177,35 +247,81 @@ const InstructorCoursesPage: React.FC = () => {
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted/50 text-muted-foreground hover:text-foreground'
                 )}
+                title="Ro'yxat ko'rinish"
               >
                 <List className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('manage')}
+                className={cn(
+                  'p-2 rounded-lg transition-all',
+                  viewMode === 'manage'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted/50 text-muted-foreground hover:text-foreground'
+                )}
+                title="Boshqarish ko'rinish"
+              >
+                <BookOpen className="w-5 h-5" />
               </button>
             </div>
           </div>
         </motion.div>
 
-        {/* Courses Grid */}
-        <div className={cn(
-          'grid gap-6',
-          viewMode === 'grid' 
-            ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
-            : 'grid-cols-1'
-        )}>
-          {filteredCourses.map((course, index) => (
-            <motion.div
-              key={course.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <CourseCard
-                course={course}
-                variant="instructor"
-                onAction={handleCourseAction}
-              />
-            </motion.div>
-          ))}
-        </div>
+        {/* Courses Display */}
+        {viewMode === 'manage' ? (
+          // Management View
+          <div className="space-y-2">
+            {filteredCourses.length > 0 ? (
+              filteredCourses.map((course, index) => (
+                <motion.div
+                  key={course.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <CourseManagementPanel
+                    course={course}
+                    onLessonCountUpdate={(count) => {
+                      setCourses(cs => 
+                        cs.map(c => c.id === course.id 
+                          ? { ...c, totalLessons: count }
+                          : c
+                        )
+                      );
+                    }}
+                  />
+                </motion.div>
+              ))
+            ) : (
+              <p className="text-center py-12 text-muted-foreground">
+                Kurslar topilmadi
+              </p>
+            )}
+          </div>
+        ) : (
+          // Grid/List View
+          <div className={cn(
+            'grid gap-6',
+            viewMode === 'grid' 
+              ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
+              : 'grid-cols-1'
+          )}>
+            {filteredCourses.map((course, index) => (
+              <motion.div
+                key={course.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <CourseCard
+                  course={course}
+                  variant="instructor"
+                  onAction={handleCourseAction}
+                />
+              </motion.div>
+            ))}
+          </div>
+        )}
 
         {filteredCourses.length === 0 && (
           <motion.div
@@ -219,7 +335,10 @@ const InstructorCoursesPage: React.FC = () => {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => {
+                resetForm();
+                setShowModal(true);
+              }}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:shadow-lg hover:shadow-primary/25 transition-all"
             >
               <Plus className="w-5 h-5" />
@@ -228,32 +347,39 @@ const InstructorCoursesPage: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Create Course Modal */}
+        {/* Course Modal (create/edit) */}
         <AnimatePresence>
-          {showCreateModal && (
+          {showModal && (
             <>
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => {
+                  setShowModal(false);
+                  resetForm();
+                }}
                 className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="fixed  left-1/3 top-1/4 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg z-50"
+                className="fixed inset-0 flex items-center justify-center z-50 p-4"
               >
-                <div className="glass-card p-6">
-                  <h2 className="font-display font-bold text-2xl mb-4">Yangi kurs yaratish</h2>
+                <div className="glass-card w-full max-w-lg max-h-[90vh] flex flex-col">
+                  <h2 className="font-display font-bold text-2xl mb-4 p-6 pb-0">
+                    {editingId ? 'Kursni tahrirlash' : 'Yangi kurs yaratish'}
+                  </h2>
                   
-                  <div className="space-y-4">
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">Kurs nomi</label>
                       <input
                         type="text"
                         placeholder="Masalan: JavaScript asoslari"
+                        value={formData.title || ''}
+                        onChange={e => setFormData(f => ({ ...f, title: e.target.value }))}
                         className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                       />
                     </div>
@@ -263,6 +389,8 @@ const InstructorCoursesPage: React.FC = () => {
                       <textarea
                         rows={3}
                         placeholder="Kurs haqida qisqacha ma'lumot..."
+                        value={formData.description || ''}
+                        onChange={e => setFormData(f => ({ ...f, description: e.target.value }))}
                         className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"
                       />
                     </div>
@@ -270,18 +398,25 @@ const InstructorCoursesPage: React.FC = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium mb-2">Kategoriya</label>
-                        <select className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all">
-                          <option>Dasturlash</option>
-                          <option>Web Development</option>
-                          <option>Backend</option>
-                          <option>Database</option>
-                          <option>AI/ML</option>
+                        <select
+                          className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                          value={formData.category_id || ''}
+                          onChange={e => setFormData(f => ({ ...f, category_id: Number(e.target.value) }))}
+                        >
+                          <option value="">--kategoriya tanlang--</option>
+                          {categories.map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                          ))}
                         </select>
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium mb-2">Daraja</label>
-                        <select className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all">
+                        <select
+                          className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                          value={formData.difficulty}
+                          onChange={e => setFormData(f => ({ ...f, difficulty: e.target.value as any }))}
+                        >
                           <option value="beginner">Boshlang'ich</option>
                           <option value="intermediate">O'rta</option>
                           <option value="advanced">Murakkab</option>
@@ -289,27 +424,50 @@ const InstructorCoursesPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex gap-3 pt-4">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setShowCreateModal(false)}
-                        className="flex-1 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 font-medium transition-all"
-                      >
-                        Bekor qilish
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                          // Create course logic
-                          setShowCreateModal(false);
-                        }}
-                        className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:shadow-lg hover:shadow-primary/25 transition-all"
-                      >
-                        Yaratish
-                      </motion.button>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Darslar soni</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={formData.total_lessons ?? 0}
+                        onChange={e => setFormData(f => ({ ...f, total_lessons: Number(e.target.value) }))}
+                        className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
                     </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Muqova rasmi (ixtiyoriy)</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          setFormData(f => ({ ...f, thumbnail: file }));
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                  <div className="border-t border-border/50 p-6 flex gap-3 bg-background/50">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setShowModal(false);
+                        resetForm();
+                      }}
+                      className="flex-1 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 font-medium transition-all"
+                    >
+                      Bekor qilish
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleSave}
+                      className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:shadow-lg hover:shadow-primary/25 transition-all"
+                    >
+                      Yaratish
+                    </motion.button>
                   </div>
                 </div>
               </motion.div>

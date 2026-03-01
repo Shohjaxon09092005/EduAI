@@ -1,17 +1,30 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Bell, Sun, Moon, Menu } from 'lucide-react';
+import { Search, Bell, Sun, Moon, Menu, LogOut, Settings } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {
   title: string;
-  userName: string;
-  userAvatar?: string;
   onMenuClick?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, userName, userAvatar, onMenuClick }) => {
+export const Header: React.FC<HeaderProps> = ({ title, onMenuClick }) => {
   const { theme, toggleTheme } = useTheme();
+  const { user, logout, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+    setIsProfileOpen(false);
+  };
+
+  const userName = user ? (user.first_name || user.email) : 'Foydalanuvchi';
+  const role = user?.role;
 
   return (
     <header className="sticky top-0 z-30 glass-card border-b border-border/50">
@@ -84,12 +97,52 @@ export const Header: React.FC<HeaderProps> = ({ title, userName, userAvatar, onM
           {/* User Profile */}
           <motion.div
             whileHover={{ scale: 1.02 }}
-            className="flex items-center gap-3 pl-3 pr-4 py-2 rounded-xl bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
+            className="relative"
           >
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-semibold">
-              {userName.charAt(0).toUpperCase()}
-            </div>
-            <span className="hidden sm:block font-medium">{userName}</span>
+            <button
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              className="flex items-center gap-3 pl-3 pr-4 py-2 rounded-xl bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
+            >
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-semibold">
+                {userName.charAt(0).toUpperCase()}
+              </div>
+              <div className="hidden sm:block text-left">
+                <div className="font-medium text-sm">{userName}</div>
+                <div className="text-xs text-muted-foreground capitalize">{role || 'User'}</div>
+              </div>
+            </button>
+
+            {/* Dropdown Menu */}
+            {isProfileOpen && isAuthenticated && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute right-0 mt-2 w-48 rounded-xl bg-card border border-border shadow-lg overflow-hidden z-50"
+              >
+                <div className="p-4 border-b border-border">
+                  <p className="font-semibold text-sm">{userName}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{role}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    navigate(`/${role}/settings`);
+                    setIsProfileOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors text-sm"
+                >
+                  <Settings className="w-4 h-4" />
+                  Sozlamalar
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-destructive/10 text-destructive transition-colors text-sm border-t border-border"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Chiqish
+                </button>
+              </motion.div>
+            )}
           </motion.div>
         </div>
       </div>

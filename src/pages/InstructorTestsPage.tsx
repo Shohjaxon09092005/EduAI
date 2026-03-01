@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,9 @@ import {
   Trophy,
   Users
 } from 'lucide-react';
+import { Course, Test } from '@/types';
+import { getCourses, getTests, createTest, updateTest, deleteTest } from '@/lib/api';
+import { TestManagementModal } from '@/components/modals/TestManagementModal';
 
 interface Test {
   id: string;
@@ -28,52 +31,8 @@ interface Test {
   created: string;
 }
 
-const mockTests: Test[] = [
-  {
-    id: '1',
-    title: 'JavaScript asoslari',
-    course: 'Web Dasturlash',
-    questions: 25,
-    duration: 30,
-    attempts: 156,
-    avgScore: '78%',
-    status: 'published',
-    created: '2024-01-15'
-  },
-  {
-    id: '2',
-    title: 'React hooks',
-    course: 'React Development',
-    questions: 20,
-    duration: 25,
-    attempts: 89,
-    avgScore: '82%',
-    status: 'published',
-    created: '2024-01-10'
-  },
-  {
-    id: '3',
-    title: 'CSS Grid va Flexbox',
-    course: 'Frontend Masterclass',
-    questions: 15,
-    duration: 20,
-    attempts: 203,
-    avgScore: '85%',
-    status: 'draft',
-    created: '2024-01-20'
-  },
-  {
-    id: '4',
-    title: 'Node.js backend',
-    course: 'Backend Development',
-    questions: 30,
-    duration: 40,
-    attempts: 67,
-    avgScore: '75%',
-    status: 'archived',
-    created: '2023-12-28'
-  }
-];
+// initial state will be loaded from API
+const mockTests: Test[] = []; // kept for type reference
 
 const InstructorTestsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -81,11 +40,16 @@ const InstructorTestsPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
 
-  const filteredTests = mockTests.filter(test => {
-    const matchesSearch = test.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          test.course.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = selectedStatus === 'all' || test.status === selectedStatus;
-    return matchesSearch && matchesStatus;
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [tests, setTests] = useState<Test[]>([]);
+  const [modalTest, setModalTest] = useState<Partial<Test> | null>(null);
+
+  const filteredTests = tests.filter(test => {
+    const matchesSearch =
+      test.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (test.courseTitle || '').toLowerCase().includes(searchQuery.toLowerCase());
+    // status not yet tracked; show all
+    return matchesSearch;
   });
 
   const getStatusColor = (status: string) => {
@@ -98,7 +62,56 @@ const InstructorTestsPage: React.FC = () => {
   };
 
   const handleTestAction = (action: string, testId: string) => {
-    console.log(`Action: ${action} on test: ${testId}`);
+    const target = tests.find(t => t.id === testId);
+    if (!target) return;
+    if (action === 'edit') {
+      setModalTest(target);
+      setShowCreateModal(true);
+    } else if (action === 'delete') {
+      if (window.confirm('Testni o\'chirmoqchimisiz?')) {
+        deleteTest(testId)
+          .then(() => setTests(ts => ts.filter(t => t.id !== testId)))
+          .catch(err => console.error('delete test failed', err));
+      }
+    } else if (action === 'view') {
+      // TODO: navigate to test detail when implemented
+    }
+  };
+
+  // load courses & tests
+  useEffect(() => {
+    getCourses()
+      .then(setCourses)
+      .catch(err => console.error('load courses', err));
+    getTests()
+      .then(setTests)
+      .catch(err => console.error('load tests', err));
+  }, []);
+
+  const handleSaveModal = (t: Test) => {
+    setShowCreateModal(false);
+    if (t.id) {
+      // editing
+      updateTest(t.id, {
+        title: t.title,
+        course: Number(t.courseId),
+        duration: t.duration,
+        difficulty: t.difficulty,
+      })
+        .then((updated) => {
+          setTests(ts => ts.map(x => (x.id === updated.id ? updated : x)));
+        })
+        .catch(err => console.error('update test', err));
+    } else {
+      createTest({
+        title: t.title,
+        course: Number(t.courseId),
+        duration: t.duration,
+        difficulty: t.difficulty,
+      })
+        .then(newTest => setTests(ts => [...ts, newTest]))
+        .catch(err => console.error('create test', err));
+    }
   };
 
   return (
@@ -209,7 +222,7 @@ const InstructorTestsPage: React.FC = () => {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => { setModalTest(null); setShowCreateModal(true); }}
               className="flex items-center gap-2 px-6 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:shadow-lg hover:shadow-primary/25 transition-all"
             >
               <Plus className="w-5 h-5" />
@@ -262,30 +275,18 @@ const InstructorTestsPage: React.FC = () => {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="text-lg font-semibold mb-1">{test.title}</h3>
-                  <p className="text-sm text-muted-foreground">{test.course}</p>
+                  <p className="text-sm text-muted-foreground">{test.courseTitle || '-'}</p>
                 </div>
-                <span className={cn('px-2 py-1 rounded-full text-xs font-medium', getStatusColor(test.status))}>
-                  {test.status === 'published' ? 'Nashr qilingan' : 
-                   test.status === 'draft' ? 'Qoralama' : 'Arxivlangan'}
-                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
                 <div className="flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-muted-foreground" />
-                  <span>{test.questions} savol</span>
+                  <span>{test.questions?.length ?? 0} savol</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-muted-foreground" />
                   <span>{test.duration} daqiqa</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                  <span>{test.attempts} urinish</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-muted-foreground" />
-                  <span>O'rtacha: {test.avgScore}</span>
                 </div>
               </div>
 
@@ -341,89 +342,15 @@ const InstructorTestsPage: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Create Test Modal */}
-        <AnimatePresence>
-          {showCreateModal && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowCreateModal(false)}
-                className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="fixed left-1/3 top-1/4 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg z-50"
-              >
-                <div className="glass-card p-6">
-                  <h2 className="font-display font-bold text-2xl mb-4">Yangi test yaratish</h2>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Test nomi</label>
-                      <input
-                        type="text"
-                        placeholder="Masalan: JavaScript asoslari"
-                        className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Kurs</label>
-                      <select className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all">
-                        <option>Web Dasturlash</option>
-                        <option>React Development</option>
-                        <option>Frontend Masterclass</option>
-                        <option>Backend Development</option>
-                      </select>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Savollar soni</label>
-                        <input
-                          type="number"
-                          placeholder="20"
-                          className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Vaqt (daqiqa)</label>
-                        <input
-                          type="number"
-                          placeholder="30"
-                          className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3 pt-4">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setShowCreateModal(false)}
-                        className="flex-1 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 font-medium transition-all"
-                      >
-                        Bekor qilish
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:shadow-lg hover:shadow-primary/25 transition-all"
-                      >
-                        Yaratish
-                      </motion.button>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+        {/* Create/Edit Test Modal */}
+        <TestManagementModal
+          isOpen={showCreateModal}
+          courses={courses}
+          initial={modalTest || undefined}
+          onClose={() => setShowCreateModal(false)}
+          onSaved={handleSaveModal}
+        />
+        
       </div>
     </DashboardLayout>
   );
