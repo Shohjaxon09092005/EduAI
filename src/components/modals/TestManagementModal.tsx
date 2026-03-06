@@ -166,13 +166,13 @@ export const TestManagementModal: React.FC<TestManagementModalProps> = ({
                         <button type="button" onClick={() => removeQuestion(qi)} className="p-1 rounded hover:bg-destructive/10 text-destructive"><Trash2 className="w-4 h-4"/></button>
                       </div>
                     </div>
-                    <textarea value={q.text} onChange={e => updateQuestion(qi, { text: e.target.value })} className="w-full px-3 py-2 rounded mb-2" placeholder="Savol matni..." rows={2} />
+                    <textarea value={q.text} onChange={e => updateQuestion(qi, { text: e.target.value })} className="w-full px-3 py-2 rounded mb-2 bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Savol matni..." rows={2} />
 
                     <div className="space-y-2">
                       {q.options.map((opt, oi) => (
                         <div key={oi} className="flex items-center gap-2">
                           <input type="radio" name={`correct-${qi}`} checked={q.correctAnswer === oi} onChange={() => updateQuestion(qi, { correctAnswer: oi })} />
-                          <input type="text" value={opt} onChange={e => updateQuestion(qi, { options: q.options.map((o, i) => i === oi ? e.target.value : o) })} className="flex-1 px-3 py-2 rounded" placeholder={`Variant ${oi + 1}`} />
+                          <input type="text" value={opt} onChange={e => updateQuestion(qi, { options: q.options.map((o, i) => i === oi ? e.target.value : o) })} className="flex-1 px-3 py-2 rounded bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder={`Variant ${oi + 1}`} />
                           <button type="button" onClick={() => updateQuestion(qi, { options: q.options.filter((_, i) => i !== oi), correctAnswer: Math.min(q.correctAnswer, Math.max(0, q.options.length - 2)) })} className="p-1 rounded hover:bg-muted/80">X</button>
                         </div>
                       ))}

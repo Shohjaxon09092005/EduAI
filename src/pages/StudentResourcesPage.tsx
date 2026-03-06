@@ -75,7 +75,7 @@ const StudentResourcesPage: React.FC = () => {
           <div className="flex items-center gap-2 bg-accent/10 px-4 py-2 rounded-xl">
             <Sparkles className="w-5 h-5 text-accent" />
             <span className="text-sm font-medium text-accent">
-              AI tomonidan tavsiya etilganlar
+              AI tomonidan tavsiya etilganlar 
             </span>
           </div>
         </div>
@@ -133,6 +133,7 @@ const StudentResourcesPage: React.FC = () => {
         <ResourceViewer
           resources={filteredResources}
           onView={(resource) => console.log("Viewing resource:", resource)}
+          tokens={tokens}
         />
 
         {filteredResources.length === 0 && (

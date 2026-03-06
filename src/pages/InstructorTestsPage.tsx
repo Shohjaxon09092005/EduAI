@@ -16,20 +16,18 @@ import {
   Users
 } from 'lucide-react';
 import { Course, Test } from '@/types';
-import { getCourses, getTests, createTest, updateTest, deleteTest } from '@/lib/api';
+import { getCourses, getTests, getTest, createTest, updateTest, deleteTest } from '@/lib/api';
 import { TestManagementModal } from '@/components/modals/TestManagementModal';
+import { TestViewModal } from '@/components/modals/TestViewModal';
 
-interface Test {
-  id: string;
-  title: string;
-  course: string;
-  questions: number;
-  duration: number;
-  attempts: number;
-  avgScore: string;
-  status: 'draft' | 'published' | 'archived';
-  created: string;
-}
+// Additional fields are added by the backend for display (attempts, avgScore, status, created, etc.)
+// the imported `Test` type covers the core properties; we can extend it locally if needed.
+// type DisplayTest = Test & {
+//   attempts?: number;
+//   avgScore?: string;
+//   status?: 'draft' | 'published' | 'archived';
+//   created?: string;
+// };
 
 // initial state will be loaded from API
 const mockTests: Test[] = []; // kept for type reference
@@ -43,6 +41,10 @@ const InstructorTestsPage: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [tests, setTests] = useState<Test[]>([]);
   const [modalTest, setModalTest] = useState<Partial<Test> | null>(null);
+
+  // view-only modal state
+  const [viewTestData, setViewTestData] = useState<Test | null>(null);
+  const [showViewModal, setShowViewModal] = useState(false);
 
   const filteredTests = tests.filter(test => {
     const matchesSearch =
@@ -74,7 +76,13 @@ const InstructorTestsPage: React.FC = () => {
           .catch(err => console.error('delete test failed', err));
       }
     } else if (action === 'view') {
-      // TODO: navigate to test detail when implemented
+      // fetch full test and open view modal
+      getTest(testId)
+        .then(t => {
+          setViewTestData(t);
+          setShowViewModal(true);
+        })
+        .catch(err => console.error('load test for view', err));
     }
   };
 
@@ -349,6 +357,16 @@ const InstructorTestsPage: React.FC = () => {
           initial={modalTest || undefined}
           onClose={() => setShowCreateModal(false)}
           onSaved={handleSaveModal}
+        />
+
+        {/* View Test Modal */}
+        <TestViewModal
+          isOpen={showViewModal}
+          testData={viewTestData || undefined}
+          onClose={() => {
+            setShowViewModal(false);
+            setViewTestData(null);
+          }}
         />
         
       </div>

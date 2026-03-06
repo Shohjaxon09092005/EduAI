@@ -613,7 +613,7 @@ export const updateLessonResource = async (id: string, data: Partial<LessonResou
     url = r.url;
   } else if (r.file) {
     const baseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
-    url = `${baseUrl}${r.file}`;
+    url = `${r.file}`;
   }
   
   return {
@@ -941,3 +941,58 @@ export const deleteResource = async (id: string): Promise<void> => {
     throw new Error('Failed to delete resource');
   }
 };
+
+// Test Results
+export interface TestResultPayload {
+  test: number | string;
+  answers: number[];
+  time_spent: number; // in seconds
+}
+
+export interface ApiTestResult {
+  id: number;
+  student: number;
+  student_name: string;
+  test: number;
+  test_title: string;
+  course_title: string;
+  score: number;
+  max_score: number;
+  answers: number[];
+  time_spent: number;
+  correct_answers: number;
+  total_questions: number;
+  created_at: string;
+}
+
+export const submitTestResult = async (payload: TestResultPayload): Promise<ApiTestResult> => {
+  const response = await apiFetch(`/test-results/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to submit test result');
+  }
+
+  return response.json();
+};
+
+export const getTestResults = async (testId?: number): Promise<ApiTestResult[]> => {
+  let path = '/test-results/';
+  if (testId) {
+    path += `?test=${testId}`;
+  }
+  const response = await apiFetch(path, { method: 'GET' });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    console.warn('getTestResults failed', response.status, text);
+    throw new Error(`Failed to fetch test results: ${text}`);
+  }
+
+  return response.json();
+};
+

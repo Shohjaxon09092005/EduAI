@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, 
@@ -7,14 +7,19 @@ import {
   XCircle, 
   ArrowRight,
   Brain,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Question } from '@/types';
+import { Question, Test } from '@/types';
+import { submitTestResult } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface AITestProps {
   title: string;
   questions: Question[];
+  testId?: string | number;
+  duration?: number; // minutes, optional
   onComplete: (score: number, answers: number[]) => void;
 }
 
@@ -45,12 +50,18 @@ const mockQuestions: Question[] = [
 export const AITest: React.FC<Partial<AITestProps>> = ({
   title = "AI yaratgan test",
   questions = mockQuestions,
+  testId,
+  duration = 0,
   onComplete,
 }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>(new Array(questions.length).fill(null));
   const [showResult, setShowResult] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(duration * 60);
+  const [timeStarted] = useState(Date.now());
+  const [error, setError] = useState<string | null>(null);
 
   const handleSelectAnswer = (answerIndex: number) => {
     const newAnswers = [...selectedAnswers];
@@ -58,28 +69,140 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
     setSelectedAnswers(newAnswers);
   };
 
-  const handleNext = () => {
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(prev => prev + 1);
-    } else {
-      setIsAnalyzing(true);
-      setTimeout(() => {
-        setIsAnalyzing(false);
-        setShowResult(true);
-      }, 2000);
-    }
-  };
-
-  const calculateScore = () => {
+  // calculating score may change when questions/answers update
+  const calculateScore = React.useCallback(() => {
     let correct = 0;
     questions.forEach((q, i) => {
       if (selectedAnswers[i] === q.correctAnswer) correct++;
     });
     return Math.round((correct / questions.length) * 100);
+  }, [questions, selectedAnswers]);
+
+  // calculate score on demand inside finishTest
+  const finishTest = React.useCallback(async () => {
+    const currentScore = calculateScore();
+    const timeSpentSeconds = Math.round((Date.now() - timeStarted) / 1000);
+    
+    setIsAnalyzing(true);
+    setError(null);
+
+    try {
+      // Submit to backend if testId is provided
+      if (testId) {
+        setIsSubmitting(true);
+        const answersList = selectedAnswers.map(a => a ?? -1);
+        await submitTestResult({
+          test: testId,
+          answers: answersList,
+          time_spent: timeSpentSeconds,
+        });
+        toast.success('Test natijalari saqlandi');
+      }
+
+      setTimeout(() => {
+        setIsAnalyzing(false);
+        setIsSubmitting(false);
+        setShowResult(true);
+        if (onComplete) {
+          onComplete(currentScore, selectedAnswers.map(a => a ?? -1));
+        }
+      }, 1500);
+    } catch (err: any) {
+      console.error('Test submission error:', err);
+      setError(err.message || 'Test saqlashda xatolik');
+      setIsAnalyzing(false);
+      setIsSubmitting(false);
+      toast.error('Test natijalari saqlanmadi');
+    }
+  }, [calculateScore, timeStarted, selectedAnswers, testId, onComplete]);
+
+  const handleNext = () => {
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(prev => prev + 1);
+    } else {
+      finishTest();
+    }
   };
 
+  // note: score computed when needed by finishTest and when showing results
   const score = calculateScore();
   const question = questions[currentQuestion];
+
+  // timer effect
+  useEffect(() => {
+    setTimeLeft(duration * 60);
+  }, [duration, questions.length]);
+
+  useEffect(() => {
+    if (showResult || isAnalyzing) return;
+    if (timeLeft <= 0) {
+      finishTest();
+      return;
+    }
+    const id = setInterval(() => setTimeLeft(t => t - 1), 1000);
+    return () => clearInterval(id);
+  }, [timeLeft, showResult, isAnalyzing, finishTest]);
+
+  // Auto-submit if time's up
+  useEffect(() => {
+    if (timeLeft === 0 && duration > 0 && !showResult && !isAnalyzing) {
+      toast.warning('Vaqt tugadi!');
+      finishTest();
+    }
+  }, [timeLeft, duration, showResult, isAnalyzing, finishTest]);
+
+  if (isAnalyzing) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="glass-card p-8 text-center"
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+          className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center"
+        >
+          <Brain className="w-10 h-10 text-primary-foreground" />
+        </motion.div>
+        <h3 className="font-display font-semibold text-xl mb-2">
+          {isSubmitting ? 'Natijalari saqlanmoqda...' : 'AI javoblarni tahlil qilmoqda...'}
+        </h3>
+        <p className="text-muted-foreground">Biroz kuting</p>
+      </motion.div>
+    );
+  }
+
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="glass-card p-8"
+      >
+        <div className="flex items-start gap-4 mb-6">
+          <AlertCircle className="w-12 h-12 text-destructive flex-shrink-0 mt-1" />
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Xatolik yuz berdi</h3>
+            <p className="text-muted-foreground mb-4">{error}</p>
+          </div>
+        </div>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="w-full py-3 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-medium"
+          onClick={() => {
+            setError(null);
+            setCurrentQuestion(0);
+            setSelectedAnswers(new Array(questions.length).fill(null));
+            setShowResult(false);
+          }}
+        >
+          Qayta urinish
+        </motion.button>
+      </motion.div>
+    );
+  }
 
   if (isAnalyzing) {
     return (
@@ -135,7 +258,8 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
         {/* Question Review */}
         <div className="space-y-4">
           {questions.map((q, i) => {
-            const isCorrect = selectedAnswers[i] === q.correctAnswer;
+            const selected = selectedAnswers[i];
+            const isCorrect = selected === q.correctAnswer;
             return (
               <motion.div
                 key={q.id}
@@ -160,11 +284,18 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-sm mb-2">{q.text}</p>
+                    <p className="text-sm">
+                      <span className="font-medium">Sizning javobingiz:</span>{' '}
+                      {selected !== null && selected >= 0 ? q.options[selected] : '–'}
+                    </p>
                     {!isCorrect && (
-                      <p className="text-sm text-muted-foreground">
-                        <span className="text-success font-medium">To'g'ri javob:</span>{' '}
+                      <p className="text-sm text-success">
+                        <span className="font-medium">To'g'ri javob:</span>{' '}
                         {q.options[q.correctAnswer]}
                       </p>
+                    )}
+                    {q.explanation && (
+                      <p className="text-xs text-muted-foreground mt-1">{q.explanation}</p>
                     )}
                   </div>
                 </div>
@@ -198,9 +329,20 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
             <Sparkles className="w-5 h-5 text-accent" />
             <h3 className="font-display font-semibold">{title}</h3>
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="w-4 h-4" />
-            <span>Savol {currentQuestion + 1}/{questions.length}</span>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span>Savol {currentQuestion + 1}/{questions.length}</span>
+            </div>
+            {duration > 0 && (
+              <div className={cn(
+                'flex items-center gap-2 px-2 py-1 rounded-lg',
+                timeLeft <= 60 ? 'bg-destructive/10 text-destructive font-medium' : ''
+              )}>
+                <Clock className="w-4 h-4" />
+                <span>{Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}</span>
+              </div>
+            )}
           </div>
         </div>
         {/* Progress Bar */}

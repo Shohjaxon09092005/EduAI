@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   FileText, 
@@ -14,11 +14,13 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Resource } from '@/types';
-import React from 'react';
+import { AuthTokens } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface ResourceViewerProps {
   resources: Resource[];
   onView: (resource: Resource) => void;
+  tokens?: AuthTokens | null;
 }
 
 const mockResources: Resource[] = [
@@ -89,9 +91,73 @@ const getFileColor = (type: string) => {
 
 export const ResourceViewer: React.FC<ResourceViewerProps> = ({ 
   resources = mockResources,
-  onView 
+  onView , tokens = null
 }) => {
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
+
+  const getAbsoluteUrl = (url: string) => {
+    if (!url) return '';
+    if (/^https?:\/\//.test(url)) return url;
+    const apiBase = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/api\/?$/, '');
+    if (url.startsWith('/')) return `${apiBase}${url}`;
+    // If it's a media file path (from Django FileField), prefix with /media/
+    if (url.includes('course_resources/') || url.includes('lesson_resources/') || url.includes('course_thumbnails/') || url.includes('avatars/')) {
+      return `${apiBase}/media/${url}`;
+    }
+    return `${apiBase}/${url}`;
+  };
+
+  const downloadResource = async (resource: Resource) => {
+    try {
+      const abs = getAbsoluteUrl(resource.url);
+      if (!abs) throw new Error('Invalid resource URL');
+      const headers: Record<string, string> = {};
+      if (tokens?.access) headers.Authorization = `Bearer ${tokens.access}`;
+      const res = await fetch(abs, { headers });
+      if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = resource.title || 'download';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+      toast.success('Yuklab olindi');
+    } catch (err: any) {
+      console.error('downloadResource error', err);
+      toast.error('Yuklab olish muvaffaqiyatsiz');
+    }
+  };
+
+  const openFullscreen = (resource: Resource) => {
+    const abs = getAbsoluteUrl(resource.url);
+    if (!abs) {
+      toast.error('Resurs manzili mavjud emas');
+      return;
+    }
+
+    if (resource.type === 'video') {
+      // Open a small popup that auto-requests fullscreen
+      const w = window.open('', '_blank', 'noopener,noreferrer');
+      if (!w) {
+        window.open(abs, '_blank');
+        return;
+      }
+      const html = `<!doctype html><html><head><title>${resource.title}</title></head><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;">
+        <video id="vid" src="${abs}" controls autoplay style="width:100%;height:100%;max-height:100vh;max-width:100vw;background:#000"></video>
+        <script>const v=document.getElementById('vid');v.addEventListener('loadedmetadata',()=>{try{v.requestFullscreen?.();}catch(e){}});</script>
+      </body></html>`;
+      w.document.write(html);
+      w.document.close();
+      return;
+    }
+
+    // For PDFs, images and documents, open in new tab
+    window.open(abs, '_blank');
+  };
 
   return (
     <div className="space-y-4">
@@ -183,6 +249,7 @@ export const ResourceViewer: React.FC<ResourceViewerProps> = ({
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="p-2 rounded-lg hover:bg-muted transition-colors"
+                  onClick={() => selectedResource && downloadResource(selectedResource)}
                 >
                   <Download className="w-5 h-5" />
                 </motion.button>
@@ -214,6 +281,7 @@ export const ResourceViewer: React.FC<ResourceViewerProps> = ({
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="px-6 py-2 rounded-xl bg-primary text-primary-foreground font-medium"
+                  onClick={() => selectedResource && openFullscreen(selectedResource)}
                 >
                   To'liq ekranda ochish
                 </motion.button>
