@@ -20,6 +20,12 @@ interface UploadedFile {
   type: 'pdf' | 'pptx' | 'docx' | 'video' | 'link';
   size: string;
   status: 'uploading' | 'processing' | 'completed' | 'error';
+  // NEW fields:
+  resourceId?: string;       // backend ID after upload
+  pipelineStatus?: 'idle' | 'extracting' | 'scripting' | 'audio' | 'video' | 'quiz' | 'ready' | 'failed';
+  pipelineMessage?: string;
+  videoUrl?: string;
+  hasQuiz?: boolean;
   progress?: number;
   aiTopics?: string[];
 }
@@ -28,6 +34,7 @@ interface ResourceUploaderProps {
   files: UploadedFile[];
   onFilesAdded: (files: File[]) => void;
   onFileRemove: (id: string) => void;
+  onFileStatusUpdate?: (id: string, updates: Partial<UploadedFile>) => void; // NEW
   className?: string;
 }
 
@@ -67,6 +74,7 @@ export const ResourceUploader: React.FC<ResourceUploaderProps> = ({
   files,
   onFilesAdded,
   onFileRemove,
+  onFileStatusUpdate,
   className,
 }) => {
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -166,22 +174,86 @@ export const ResourceUploader: React.FC<ResourceUploaderProps> = ({
                     <p className="font-medium truncate">{file.name}</p>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span>{file.size}</span>
-                      {file.status === 'processing' && (
-                        <span className="flex items-center gap-1 text-accent">
-                          <Sparkles className="w-3 h-3" />
-                          AI tahlil qilmoqda...
-                        </span>
-                      )}
                     </div>
                     
-                    {/* AI Topics */}
+                    {/* Pipeline status bar — shown during processing */}
+                    {file.pipelineStatus && file.pipelineStatus !== 'idle' && (
+                      <div className="mt-2 space-y-2">
+                        {/* Status message */}
+                        <p className={`text-xs font-medium flex items-center gap-1.5 ${
+                          file.pipelineStatus === 'failed' ? 'text-destructive' :
+                          file.pipelineStatus === 'ready' ? 'text-success' : 'text-accent'
+                        }`}>
+                          {file.pipelineStatus !== 'ready' && file.pipelineStatus !== 'failed' && (
+                            <span className="w-3 h-3 rounded-full border border-accent border-t-transparent animate-spin inline-block" />
+                          )}
+                          {file.pipelineStatus === 'ready' && <span>✅</span>}
+                          {file.pipelineStatus === 'failed' && <span>❌</span>}
+                          {file.pipelineMessage || file.pipelineStatus}
+                        </p>
+
+                        {/* Step indicators */}
+                        {file.pipelineStatus !== 'ready' && file.pipelineStatus !== 'failed' && (
+                          <div className="flex gap-1">
+                            {(
+                              [
+                                { key: 'extracting', label: '📄', title: 'Matn' },
+                                { key: 'scripting',  label: '🧠', title: 'Skript' },
+                                { key: 'audio',      label: '🎙️', title: 'Ovoz' },
+                                { key: 'video',      label: '🎬', title: 'Video' },
+                                { key: 'quiz',       label: '📝', title: 'Test' },
+                              ] as const
+                            ).map(({ key, label, title }) => {
+                              const ORDER = ['extracting', 'scripting', 'audio', 'video', 'quiz'];
+                              const curIdx = ORDER.indexOf(file.pipelineStatus as string);
+                              const stepIdx = ORDER.indexOf(key);
+                              const isDone    = stepIdx < curIdx;
+                              const isActive  = stepIdx === curIdx;
+                              const isPending = stepIdx > curIdx;
+                              return (
+                                <div
+                                  key={key}
+                                  title={title}
+                                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs transition-all ${
+                                    isDone    ? 'bg-success/15 text-success' :
+                                    isActive  ? 'bg-accent/20 text-accent ring-1 ring-accent/40' :
+                                                'bg-muted/60 text-muted-foreground'
+                                  }`}
+                                >
+                                  <span>{label}</span>
+                                  <span className="hidden sm:inline">{title}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Video ready — watch button */}
+                        {file.pipelineStatus === 'ready' && file.videoUrl && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <a
+                              href={file.videoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-success/15 text-success text-xs font-medium hover:bg-success/25 transition-colors"
+                            >
+                              ▶ Video ko'rish
+                            </a>
+                            {file.hasQuiz && (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium">
+                                📝 Test yaratildi
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* AI Topics (existing — keep unchanged) */}
                     {file.aiTopics && file.aiTopics.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {file.aiTopics.map((topic, i) => (
-                          <span
-                            key={i}
-                            className="px-2 py-0.5 rounded-full text-xs bg-accent/10 text-accent"
-                          >
+                          <span key={i} className="px-2 py-0.5 rounded-full text-xs bg-accent/10 text-accent">
                             {topic}
                           </span>
                         ))}
@@ -189,21 +261,24 @@ export const ResourceUploader: React.FC<ResourceUploaderProps> = ({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {file.status === 'uploading' && (
-                      <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {(file.status === 'uploading' || (file.pipelineStatus && !['ready','failed','idle',undefined].includes(file.pipelineStatus))) && (
+                      file.status === 'uploading'
+                        ? <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                        : <div className="w-5 h-5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
                     )}
-                    {file.status === 'processing' && (
-                      <div className="w-5 h-5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
-                    )}
-                    {file.status === 'completed' && (
+                    {file.status === 'completed' && file.pipelineStatus === 'ready' && (
                       <CheckCircle className="w-5 h-5 text-success" />
+                    )}
+                    {file.status === 'error' && (
+                      <span className="text-destructive text-lg">✗</span>
                     )}
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                       onClick={() => onFileRemove(file.id)}
-                      className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                      disabled={file.status === 'uploading'}
+                      className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
                     >
                       <X className="w-4 h-4" />
                     </motion.button>

@@ -29,9 +29,6 @@ import { TestViewModal } from '@/components/modals/TestViewModal';
 //   created?: string;
 // };
 
-// initial state will be loaded from API
-const mockTests: Test[] = []; // kept for type reference
-
 const InstructorTestsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -135,7 +132,7 @@ const InstructorTestsPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Jami testlar</p>
-                <p className="text-2xl font-bold mt-1">{mockTests.length}</p>
+                <p className="text-2xl font-bold mt-1">{tests.length}</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Trophy className="w-6 h-6 text-primary" />

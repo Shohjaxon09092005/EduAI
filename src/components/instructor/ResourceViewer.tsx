@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   FileText, 
@@ -10,54 +10,19 @@ import {
   Sparkles,
   Calendar,
   ChevronRight,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Resource } from '@/types';
-import { AuthTokens } from '@/lib/api';
+import api from '@/lib/api';
 import { toast } from 'sonner';
 
 interface ResourceViewerProps {
-  resources: Resource[];
+  resources?: Resource[];
   onView: (resource: Resource) => void;
-  tokens?: AuthTokens | null;
+  courseId?: string | number;
 }
-
-const mockResources: Resource[] = [
-  {
-    id: '1',
-    title: "Kirish - Asosiy tushunchalar.pdf",
-    type: 'pdf',
-    url: '#',
-    uploadedAt: new Date(),
-    size: '2.4 MB',
-    aiTopics: ['Asosiy tushunchalar', 'Nazariya', 'Kirish'],
-    courseId: '1',
-    category: 'Dasturlash',
-  },
-  {
-    id: '2',
-    title: "Ma'ruza 1 - Prezentatsiya.pptx",
-    type: 'pptx',
-    url: '#',
-    uploadedAt: new Date(),
-    size: '5.1 MB',
-    aiTopics: ['Ma\'ruza', 'Vizual materiallar'],
-    courseId: '1',
-    category: 'Web Development',
-  },
-  {
-    id: '3',
-    title: "Amaliy mashg'ulot - Video dars",
-    type: 'video',
-    url: '#',
-    uploadedAt: new Date(),
-    size: '124 MB',
-    aiTopics: ['Amaliyot', 'Video dars', 'Namuna'],
-    courseId: '1',
-    category: 'Backend',
-  },
-];
 
 const getFileIcon = (type: string) => {
   switch (type) {
@@ -90,11 +55,36 @@ const getFileColor = (type: string) => {
 };
 
 export const ResourceViewer: React.FC<ResourceViewerProps> = ({ 
-  resources = mockResources,
-  onView , tokens = null
+  resources: initialResources,
+  onView,
+  courseId
 }) => {
+  const [resources, setResources] = useState<Resource[]>(initialResources || []);
+  const [isLoading, setIsLoading] = useState(!initialResources);
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
+
+  // Load resources from API if not provided
+  useEffect(() => {
+    if (!initialResources) {
+      const loadResources = async () => {
+        try {
+          let url = '/courses/lesson-resources/';
+          if (courseId) {
+            url += `?course=${courseId}`;
+          }
+          const response = await api.get(url);
+          setResources(response.data || []);
+        } catch (error) {
+          console.error('Failed to load resources:', error);
+          toast.error('Resurslar yuklanmadi');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      loadResources();
+    }
+  }, [initialResources, courseId]);
 
   const getAbsoluteUrl = (url: string) => {
     if (!url) return '';
@@ -113,7 +103,8 @@ export const ResourceViewer: React.FC<ResourceViewerProps> = ({
       const abs = getAbsoluteUrl(resource.url);
       if (!abs) throw new Error('Invalid resource URL');
       const headers: Record<string, string> = {};
-      if (tokens?.access) headers.Authorization = `Bearer ${tokens.access}`;
+      const accessToken = localStorage.getItem('access_token');
+      if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
       const res = await fetch(abs, { headers });
       if (!res.ok) throw new Error(`Download failed: ${res.status}`);
       const blob = await res.blob();

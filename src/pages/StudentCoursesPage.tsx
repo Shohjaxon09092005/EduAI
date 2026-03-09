@@ -26,7 +26,7 @@ const StudentCoursesPage: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  const { tokens } = useAuth();
+  const { user, tokens } = useAuth();
 
   useEffect(() => {
     setLoading(true);
@@ -62,7 +62,7 @@ const StudentCoursesPage: React.FC = () => {
   };
 
   return (
-    <DashboardLayout role="student" title="Kurslarim" userName="Talaba">
+    <DashboardLayout role="student" title="Kurslarim" userName={user?.name || user?.email || 'Talaba'}>
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

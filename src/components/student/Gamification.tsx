@@ -1,33 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Medal, Star, Award, Crown, Zap, Target, BookOpen } from 'lucide-react';
+import { Trophy, Medal, Star, Award, Crown, Zap, Target, BookOpen, Loader2 } from 'lucide-react';
 import { Badge, LeaderboardEntry } from '@/types';
 import { cn } from '@/lib/utils';
+import api from '@/lib/api';
 
 interface GamificationProps {
-  level: number;
-  xp: number;
-  xpToNextLevel: number;
-  badges: Badge[];
-  leaderboard: LeaderboardEntry[];
-  currentUserId: string;
+  level?: number;
+  xp?: number;
+  xpToNextLevel?: number;
+  badges?: Badge[];
+  leaderboard?: LeaderboardEntry[];
+  currentUserId?: string;
 }
-
-const mockBadges: Badge[] = [
-  { id: '1', name: 'Birinchi qadam', description: 'Birinchi darsni yakunlang', icon: 'star', tier: 'bronze', earnedAt: new Date() },
-  { id: '2', name: 'Bilim izlovchi', description: '10 ta darsni yakunlang', icon: 'book', tier: 'silver', earnedAt: new Date() },
-  { id: '3', name: 'Test ustasi', description: '5 ta testdan 90%+ ball oling', icon: 'trophy', tier: 'gold', earnedAt: new Date() },
-  { id: '4', name: 'Izchil o\'quvchi', description: '7 kun ketma-ket kiring', icon: 'zap', tier: 'bronze' },
-  { id: '5', name: 'Maqsadga erishuvchi', description: 'Barcha kurs maqsadlarini bajaring', icon: 'target', tier: 'gold' },
-];
-
-const mockLeaderboard: LeaderboardEntry[] = [
-  { userId: '1', userName: 'Aziz Karimov', xp: 4850, level: 12, rank: 1 },
-  { userId: '2', userName: 'Malika Rahimova', xp: 4200, level: 10, rank: 2 },
-  { userId: '3', userName: 'current', xp: 3800, level: 9, rank: 3 },
-  { userId: '4', userName: 'Jasur Toshev', xp: 3500, level: 8, rank: 4 },
-  { userId: '5', userName: 'Nilufar Saidova', xp: 3200, level: 8, rank: 5 },
-];
 
 const getBadgeIcon = (icon: string) => {
   switch (icon) {
@@ -59,14 +44,47 @@ const getRankStyle = (rank: number) => {
 };
 
 export const Gamification: React.FC<Partial<GamificationProps>> = ({
-  level = 9,
-  xp = 3800,
-  xpToNextLevel = 5000,
-  badges = mockBadges,
-  leaderboard = mockLeaderboard,
-  currentUserId = 'current',
+  level: initialLevel,
+  xp: initialXp,
+  xpToNextLevel: initialXpToNextLevel,
+  badges: initialBadges,
+  leaderboard: initialLeaderboard,
+  currentUserId,
 }) => {
-  const xpProgress = (xp / xpToNextLevel) * 100;
+  const [level, setLevel] = useState(initialLevel || 0);
+  const [xp, setXp] = useState(initialXp || 0);
+  const [xpToNextLevel, setXpToNextLevel] = useState(initialXpToNextLevel || 5000);
+  const [badges, setBadges] = useState<Badge[]>(initialBadges || []);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(initialLeaderboard || []);
+  const [isLoading, setIsLoading] = useState(!initialBadges);
+
+  // Load gamification data from API if not provided
+  useEffect(() => {
+    if (!initialBadges || !initialLeaderboard) {
+      const loadGamificationData = async () => {
+        try {
+          const [statsRes, badgesRes, leaderboardRes] = await Promise.all([
+            api.get('/learning/student-progress/'),
+            api.get('/learning/badges/'),
+            api.get('/analytics/leaderboard/'),
+          ]);
+          
+          setLevel(statsRes.data.level || 0);
+          setXp(statsRes.data.xp || 0);
+          setXpToNextLevel(statsRes.data.xp_to_next_level || 5000);
+          setBadges(badgesRes.data || []);
+          setLeaderboard(leaderboardRes.data || []);
+        } catch (error) {
+          console.error('Failed to load gamification data:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      loadGamificationData();
+    }
+  }, [initialBadges, initialLeaderboard]);
+
+  const xpProgress = xpToNextLevel > 0 ? (xp / xpToNextLevel) * 100 : 0;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -76,38 +94,44 @@ export const Gamification: React.FC<Partial<GamificationProps>> = ({
         animate={{ opacity: 1, y: 0 }}
         className="glass-card p-6 col-span-full"
       >
-        <div className="flex items-center gap-6">
-          {/* Level Badge */}
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/25"
-          >
-            <Crown className="absolute -top-3 -right-3 w-8 h-8 text-warning animate-bounce-subtle" />
-            <div className="text-center text-primary-foreground">
-              <p className="text-3xl font-display font-bold">{level}</p>
-              <p className="text-xs font-medium opacity-80">DARAJA</p>
-            </div>
-          </motion.div>
-
-          {/* XP Progress */}
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-display font-semibold text-lg">Tajriba ballari</h3>
-              <span className="text-sm text-muted-foreground">{xp} / {xpToNextLevel} XP</span>
-            </div>
-            <div className="level-progress">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${xpProgress}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
-                className="level-progress-bar"
-              />
-            </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              Keyingi darajaga {xpToNextLevel - xp} XP qoldi
-            </p>
+        {isLoading ? (
+          <div className="flex items-center justify-center h-32">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center gap-6">
+            {/* Level Badge */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/25"
+            >
+              <Crown className="absolute -top-3 -right-3 w-8 h-8 text-warning animate-bounce-subtle" />
+              <div className="text-center text-primary-foreground">
+                <p className="text-3xl font-display font-bold">{level}</p>
+                <p className="text-xs font-medium opacity-80">DARAJA</p>
+              </div>
+            </motion.div>
+
+            {/* XP Progress */}
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-display font-semibold text-lg">Tajriba ballari</h3>
+                <span className="text-sm text-muted-foreground">{xp} / {xpToNextLevel} XP</span>
+              </div>
+              <div className="level-progress">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${xpProgress}%` }}
+                  transition={{ duration: 1, ease: 'easeOut' }}
+                  className="level-progress-bar"
+                />
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Keyingi darajaga {xpToNextLevel - xp} XP qoldi
+              </p>
+            </div>
+          </div>
+        )}
       </motion.div>
 
       {/* Badges Section */}

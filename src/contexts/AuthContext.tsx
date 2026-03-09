@@ -30,7 +30,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Verify token by fetching user
         getCurrentUser(parsedTokens.access)
           .then((userData) => {
-            setUser(userData);
+            // Normalize user name from first_name/last_name
+            const normalizedUser = {
+              ...userData,
+              name: userData.first_name && userData.last_name 
+                ? `${userData.first_name} ${userData.last_name}`
+                : userData.first_name || userData.last_name || userData.email || userData.username,
+            };
+            setUser(normalizedUser);
           })
           .catch(() => {
             // Token might be expired
@@ -45,7 +52,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = (userData: User, authTokens: AuthTokens) => {
-    setUser(userData);
+    // Normalize user name from first_name/last_name
+    const normalizedUser = {
+      ...userData,
+      name: userData.first_name && userData.last_name 
+        ? `${userData.first_name} ${userData.last_name}`
+        : userData.first_name || userData.last_name || userData.email || 'User',
+    };
+    setUser(normalizedUser);
     setTokens(authTokens);
     localStorage.setItem("auth_tokens", JSON.stringify(authTokens));
   };

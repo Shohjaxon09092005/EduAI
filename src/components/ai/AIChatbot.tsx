@@ -13,23 +13,34 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AIMessage } from '@/types';
-
-const mockMessages: AIMessage[] = [
-  {
-    id: '1',
-    role: 'assistant',
-    content: "Salom! Men sizning AI o'quv yordamchingizman. Platformaga yuklangan materiallar asosida savollaringizga javob beraman. Qanday yordam bera olaman?",
-    timestamp: new Date(),
-    confidence: 0.98,
-  },
-];
+import api from '@/lib/api';
 
 export const AIChatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<AIMessage[]>(mockMessages);
+  const [messages, setMessages] = useState<AIMessage[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load chat history on mount
+  useEffect(() => {
+    const loadMessages = async () => {
+      try {
+        const response = await api.get('/learning/ai-messages/');
+        setMessages(response.data || []);
+      } catch (error) {
+        console.error('Failed to load messages:', error);
+        setMessages([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (isOpen) {
+      loadMessages();
+    }
+  }, [isOpen]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -53,19 +64,34 @@ export const AIChatbot: React.FC = () => {
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Send message to AI API
+      const response = await api.post('/ai/chat/', {
+        message: input,
+        history: messages,
+      });
+      
       const aiResponse: AIMessage = {
-        id: (Date.now() + 1).toString(),
+        id: Date.now().toString(),
         role: 'assistant',
-        content: "Bu ajoyib savol! Men platformadagi materiallarni tahlil qildim va quyidagi javobni taqdim etaman: Sizning savolingiz bo'yicha eng mos ma'lumotlar mavjud. Batafsilroq tushuntirish uchun tegishli kurs materiallarini ko'rib chiqishingizni tavsiya qilaman.",
+        content: response.data.reply || response.data.content,
         timestamp: new Date(),
-        confidence: 0.92,
-        sources: ["Kirish kursi - 3-bob", "Amaliy mashg'ulot #5"],
+        confidence: 0.95,
+        sources: response.data.sources || [],
       };
       setMessages(prev => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      const errorResponse: AIMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: "Uzr, xat jo'natishda xato yuz berdi. Iltimos, qaytadan urinib ko'ring.",
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   return (

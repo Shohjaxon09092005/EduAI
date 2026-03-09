@@ -56,6 +56,8 @@ async function apiFetch(
 }
 
 export interface User {
+  name: string;
+  username: string;
   id: number;
   first_name: string;
   last_name: string;
@@ -902,12 +904,12 @@ export const updateResource = async (
     form.append('file', data.file);
     body = form;
   } else {
-    headers['Content-Type'] = 'application/json';
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     body = JSON.stringify(data);
   }
 
   const response = await apiFetch(`/resources/${id}/`, {
-    method: 'PUT',
+    method: 'PATCH',
     headers,
     body,
   });
@@ -925,11 +927,130 @@ export const updateResource = async (
     url: r.url || r.file || '',
     uploadedAt: new Date(r.uploaded_at),
     size: r.size,
-    aiTopics: r.ai_topics ? r.ai_topics.split(',').map(t => t.trim()) : [],
+    aiTopics: Array.isArray(r.ai_topics)
+  ? r.ai_topics.map((t: string) => String(t).trim()).filter(Boolean)
+  : r.ai_topics
+  ? String(r.ai_topics).split(',').map(t => t.trim()).filter(Boolean)
+  : [],
     courseId: String(r.course),
     category: r.category?.name || 'Boshqa',
   };
 };
+
+// HTTP Client wrapper providing convenience methods
+interface ApiOptions extends RequestInit {
+  params?: Record<string, any>;
+  onUploadProgress?: (progressEvent: ProgressEvent) => void;
+}
+
+const api = {
+  async get<T = any>(path: string, options?: ApiOptions): Promise<T> {
+    let finalPath = path;
+    if (options?.params) {
+      const queryString = new URLSearchParams(options.params).toString();
+      finalPath = queryString ? `${path}?${queryString}` : path;
+    }
+    
+    const response = await apiFetch(finalPath, {
+      ...options,
+      method: 'GET',
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || `API Error: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  async post<T = any>(path: string, body?: any, options?: ApiOptions): Promise<T> {
+    let finalPath = path;
+    if (options?.params) {
+      const queryString = new URLSearchParams(options.params).toString();
+      finalPath = queryString ? `${path}?${queryString}` : path;
+    }
+
+    const response = await apiFetch(finalPath, {
+      ...options,
+      method: 'POST',
+      headers: {
+        ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(options?.headers as Record<string, string> || {}),
+      },
+      body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || `API Error: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  async patch<T = any>(path: string, body?: any, options?: ApiOptions): Promise<T> {
+    let finalPath = path;
+    if (options?.params) {
+      const queryString = new URLSearchParams(options.params).toString();
+      finalPath = queryString ? `${path}?${queryString}` : path;
+    }
+
+    const response = await apiFetch(finalPath, {
+      ...options,
+      method: 'PATCH',
+      headers: {
+        ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(options?.headers as Record<string, string> || {}),
+      },
+      body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || `API Error: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  async put<T = any>(path: string, body?: any, options?: ApiOptions): Promise<T> {
+    let finalPath = path;
+    if (options?.params) {
+      const queryString = new URLSearchParams(options.params).toString();
+      finalPath = queryString ? `${path}?${queryString}` : path;
+    }
+
+    const response = await apiFetch(finalPath, {
+      ...options,
+      method: 'PUT',
+      headers: {
+        ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(options?.headers as Record<string, string> || {}),
+      },
+      body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || `API Error: ${response.status}`);
+    }
+    return response.json();
+  },
+
+  async delete<T = any>(path: string, options?: ApiOptions): Promise<T> {
+    let finalPath = path;
+    if (options?.params) {
+      const queryString = new URLSearchParams(options.params).toString();
+      finalPath = queryString ? `${path}?${queryString}` : path;
+    }
+
+    const response = await apiFetch(finalPath, {
+      ...options,
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || `API Error: ${response.status}`);
+    }
+    return response.json();
+  },
+};
+
+export default api;
 
 export const deleteResource = async (id: string): Promise<void> => {
   const response = await apiFetch(`/resources/${id}/`, {

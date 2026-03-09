@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatsCard } from '@/components/ui/StatsCard';
@@ -16,9 +16,12 @@ import {
   Eye,
   Edit,
   MessageSquare,
-  Award
+  Award,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import api from '@/lib/api';
+import { toast } from 'sonner';
 
 const mockStudents: User[] = [
   {
@@ -137,11 +140,42 @@ const badgeTierColors = {
 };
 
 const AdminStudentsPage: React.FC = () => {
+  const [students, setStudents] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [selectedStudent, setSelectedStudent] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredStudents = mockStudents.filter(student => {
+  // Load students from API on mount
+  useEffect(() => {
+    const loadStudents = async () => {
+      try {
+        const response = await api.get('/auth/students/');
+        // Convert API response to User format
+        const convertedStudents: User[] = response.data.map((student: any) => ({
+          id: student.id,
+          name: student.name,
+          email: student.email,
+          role: 'student' as const,
+          level: student.level,
+          xp: student.xp,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.name.replace(/\s+/g, '')}`,
+          badges: [],
+        }));
+        setStudents(convertedStudents);
+      } catch (error) {
+        console.error('Failed to load students:', error);
+        toast.error('Talabalarni yuklab olish muvaffaqiyatli bo\'lmadi');
+        // Fallback to mock data on error
+        setStudents(mockStudents);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadStudents();
+  }, []);
+
+  const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          student.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesLevel = selectedLevel === 'all' || 
@@ -152,148 +186,157 @@ const AdminStudentsPage: React.FC = () => {
   });
 
   const stats = {
-    total: mockStudents.length,
-    active: mockStudents.filter(s => s.xp! > 1000).length,
-    totalXP: mockStudents.reduce((acc, s) => acc + (s.xp || 0), 0),
-    totalBadges: mockStudents.reduce((acc, s) => acc + (s.badges?.length || 0), 0),
+    total: students.length,
+    active: students.filter(s => s.xp! > 1000).length,
+    totalXP: students.reduce((acc, s) => acc + (s.xp || 0), 0),
+    totalBadges: students.reduce((acc, s) => acc + (s.badges?.length || 0), 0),
   };
 
   return (
     <DashboardLayout role="instructor" title="Talabalar" userName="O'qituvchi">
       <div className="space-y-6">
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatsCard
-            title="Jami talabalar"
-            value={stats.total.toString()}
-            icon={Users}
-            variant="primary"
-          />
-          <StatsCard
-            title="Faol talabalar"
-            value={stats.active.toString()}
-            icon={TrendingUp}
-            variant="success"
-          />
-          <StatsCard
-            title="Jami XP"
-            value={stats.totalXP.toLocaleString()}
-            icon={Trophy}
-            variant="accent"
-          />
-          <StatsCard
-            title="Yutuqlar"
-            value={stats.totalBadges.toString()}
-            icon={Award}
-            variant="warning"
-          />
-        </div>
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        )}
 
-        {/* Search & Filter Bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-4"
-        >
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Talabalar bo'yicha qidirish..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+        {!isLoading && (
+          <>
+            {/* Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatsCard
+                title="Jami talabalar"
+                value={stats.total.toString()}
+                icon={Users}
+                variant="primary"
+              />
+              <StatsCard
+                title="Faol talabalar"
+                value={stats.active.toString()}
+                icon={TrendingUp}
+                variant="success"
+              />
+              <StatsCard
+                title="Jami XP"
+                value={stats.totalXP.toLocaleString()}
+                icon={Trophy}
+                variant="accent"
+              />
+              <StatsCard
+                title="Yutuqlar"
+                value={stats.totalBadges.toString()}
+                icon={Award}
+                variant="warning"
               />
             </div>
 
-            {/* Level Filter */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Daraja</label>
-              <select
-                value={selectedLevel}
-                onChange={(e) => setSelectedLevel(e.target.value)}
-                className="px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-              >
-                <option value="all">Barcha darajalar</option>
-                <option value="beginner">Beginner (1-3)</option>
-                <option value="intermediate">Intermediate (4-6)</option>
-                <option value="advanced">Advanced (7+)</option>
-              </select>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Results Count */}
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{filteredStudents.length}</span> ta talaba topildi
-          </p>
-        </div>
-
-        {/* Students Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredStudents.map((student, index) => (
+            {/* Search & Filter Bar */}
             <motion.div
-              key={student.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.05 }}
-              className="glass-card p-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-card p-4"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={student.avatar}
-                    alt={student.name}
-                    className="w-12 h-12 rounded-full bg-muted"
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                {/* Search */}
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Talabalar bo'yicha qidirish..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
-                  <div>
-                    <h3 className="font-semibold">{student.name}</h3>
-                    <p className="text-sm text-muted-foreground">Level {student.level}</p>
+                </div>
+
+                {/* Level Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">Daraja</label>
+                  <select
+                    value={selectedLevel}
+                    onChange={(e) => setSelectedLevel(e.target.value)}
+                    className="px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  >
+                    <option value="all">Barcha darajalar</option>
+                    <option value="beginner">Beginner (1-3)</option>
+                    <option value="intermediate">Intermediate (4-6)</option>
+                    <option value="advanced">Advanced (7+)</option>
+                  </select>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Results Count */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">{filteredStudents.length}</span> ta talaba topildi
+              </p>
+            </div>
+
+            {/* Students Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredStudents.map((student, index) => (
+                <motion.div
+                  key={student.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="glass-card p-6"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={student.avatar}
+                        alt={student.name}
+                        className="w-12 h-12 rounded-full bg-muted"
+                      />
+                      <div>
+                        <h3 className="font-semibold">{student.name}</h3>
+                        <p className="text-sm text-muted-foreground">Level {student.level}</p>
+                      </div>
+                    </div>
+                    <button className="p-1 rounded-lg hover:bg-muted transition-colors">
+                      <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                    </button>
                   </div>
-                </div>
-                <button className="p-1 rounded-lg hover:bg-muted transition-colors">
-                  <MoreVertical className="w-4 h-4 text-muted-foreground" />
-                </button>
-              </div>
 
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="bg-muted/30 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold">{student.xp?.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">XP</p>
-                </div>
-                <div className="bg-muted/30 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold">{student.badges?.length || 0}</p>
-                  <p className="text-xs text-muted-foreground">Yutuqlar</p>
-                </div>
-              </div>
+                  {/* Stats */}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="bg-muted/30 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold">{student.xp?.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">XP</p>
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold">{student.badges?.length || 0}</p>
+                      <p className="text-xs text-muted-foreground">Yutuqlar</p>
+                    </div>
+                  </div>
 
-              {/* Badges Preview */}
-              {student.badges && student.badges.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-xs text-muted-foreground mb-2">Yutuqlar</p>
-                  <div className="flex flex-wrap gap-1">
-                    {student.badges.slice(0, 3).map((badge) => (
-                      <span
-                        key={badge.id}
-                        className={cn(
-                          'px-2 py-1 rounded-full text-xs',
-                          badgeTierColors[badge.tier]
+                  {/* Badges Preview */}
+                  {student.badges && student.badges.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs text-muted-foreground mb-2">Yutuqlar</p>
+                      <div className="flex flex-wrap gap-1">
+                        {student.badges.slice(0, 3).map((badge) => (
+                          <span
+                            key={badge.id}
+                            className={cn(
+                              'px-2 py-1 rounded-full text-xs',
+                              badgeTierColors[badge.tier]
+                            )}
+                            title={badge.name}
+                          >
+                            {badge.icon}
+                          </span>
+                        ))}
+                        {student.badges.length > 3 && (
+                          <span className="px-2 py-1 rounded-full text-xs bg-muted text-muted-foreground">
+                            +{student.badges.length - 3}
+                          </span>
                         )}
-                        title={badge.name}
-                      >
-                        {badge.icon}
-                      </span>
-                    ))}
-                    {student.badges.length > 3 && (
-                      <span className="px-2 py-1 rounded-full text-xs bg-muted text-muted-foreground">
-                        +{student.badges.length - 3}
-                      </span>
-                    )}
-                  </div>
+                      </div>
                 </div>
               )}
 
@@ -410,7 +453,9 @@ const AdminStudentsPage: React.FC = () => {
             </div>
           </motion.div>
         </div>
-      )}
+          </>
+        )}
+      </div>
     </DashboardLayout>
   );
 };

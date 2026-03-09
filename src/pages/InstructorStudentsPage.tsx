@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatsCard } from '@/components/ui/StatsCard';
@@ -14,8 +14,11 @@ import {
   Filter,
   Download,
   UserCheck,
-  UserX
+  UserX,
+  Loader2
 } from 'lucide-react';
+import api from '@/lib/api';
+import { toast } from 'sonner';
 
 const mockStudentsData = {
   total: 342,
@@ -100,10 +103,40 @@ const mockStudents = [
 ];
 
 const InstructorStudentsPage: React.FC = () => {
+  const [students, setStudents] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    inactive: 0,
+    topPerformers: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  const filteredStudents = mockStudents.filter(student => {
+  // Load stats and students from API on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [statsRes, studentsRes] = await Promise.all([
+          api.get('/auth/instructor-students-stats/'),
+          api.get('/auth/instructor-students/'),
+        ]);
+        
+        setStats(statsRes.data);
+        setStudents(studentsRes.data);
+      } catch (error) {
+        console.error('Failed to load instructor students data:', error);
+        toast.error('Talabalar ma\'lumotlarini yuklab olish muvaffaqiyatli bo\'lmadi');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          student.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = filterStatus === 'all' || student.status === filterStatus;
@@ -127,37 +160,46 @@ const InstructorStudentsPage: React.FC = () => {
   return (
     <DashboardLayout role="instructor" title="Talabalar" userName="Aziz Domla">
       <div className="space-y-6">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatsCard
-            title="Jami talabalar"
-            value={mockStudentsData.total}
-            icon={Users}
-            variant="primary"
-          />
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {!isLoading && (
+          <>
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatsCard
+                title="Jami talabalar"
+                value={stats.total}
+                icon={Users}
+                variant="primary"
+              />
           <StatsCard
             title="Faol talabalar"
-            value={mockStudentsData.active}
+            value={stats.active}
             icon={UserCheck}
             variant="success"
             trend={{ value: 8, isPositive: true }}
           />
           <StatsCard
             title="Nofaol talabalar"
-            value={mockStudentsData.inactive}
+            value={stats.inactive}
             icon={UserX}
             variant="warning"
           />
           <StatsCard
             title="Yuqori natijalar"
-            value={mockStudentsData.topPerformers}
+            value={stats.topPerformers}
             icon={Award}
             variant="accent"
           />
-        </div>
+            </div>
 
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            {/* Controls */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div className="flex gap-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -335,6 +377,8 @@ const InstructorStudentsPage: React.FC = () => {
             </div>
           </div>
         </motion.div>
+            </>
+        )}
       </div>
     </DashboardLayout>
   );

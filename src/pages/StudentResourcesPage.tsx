@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ResourceViewer } from "@/components/instructor/ResourceViewer";
 import { Resource } from "@/types";
-import { resourceCategories } from "@/lib/mockData";
 
 import { FolderOpen, Search, Filter, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -133,7 +132,6 @@ const StudentResourcesPage: React.FC = () => {
         <ResourceViewer
           resources={filteredResources}
           onView={(resource) => console.log("Viewing resource:", resource)}
-          tokens={tokens}
         />
 
         {filteredResources.length === 0 && (

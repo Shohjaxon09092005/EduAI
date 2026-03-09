@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AITest } from '@/components/student/AITest';
+import { useAuth } from '@/contexts/AuthContext';
 import { Test } from '@/types';
 import { cn } from '@/lib/utils';
 import { getTests, getTestResults } from '@/lib/api';
@@ -49,6 +50,7 @@ interface StudentTestResult {
 }
 
 const StudentTestsPage: React.FC = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'available' | 'results'>('available');
   const [selectedTest, setSelectedTest] = useState<StudentTest | null>(null);
   const [showTest, setShowTest] = useState(false);
@@ -145,7 +147,7 @@ const StudentTestsPage: React.FC = () => {
 
   if (showTest && selectedTest && selectedTest.apiTest) {
     return (
-      <DashboardLayout role="student" title={selectedTest.title} userName="Talaba">
+      <DashboardLayout role="student" title={selectedTest.title} userName={user?.name || user?.email || 'Talaba'}>
         <div className="space-y-6">
           <div className="glass-card p-6">
             <AITest
@@ -162,7 +164,7 @@ const StudentTestsPage: React.FC = () => {
   }
 
   return (
-    <DashboardLayout role="student" title="Testlar" userName="Talaba">
+    <DashboardLayout role="student" title="Testlar" userName={user?.name || user?.email || 'Talaba'}>
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">

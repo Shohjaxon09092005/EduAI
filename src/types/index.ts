@@ -1,4 +1,6 @@
 export type UserRole = 'admin' | 'instructor' | 'student';
+export type ResourceStatus = 'uploaded' | 'extracting' | 'scripting' | 'audio' | 'video' | 'ready' | 'failed';
+export type PlanType = 'basic' | 'pro' | 'enterprise';
 
 export interface User {
   id: string;
@@ -9,6 +11,16 @@ export interface User {
   level?: number;
   xp?: number;
   badges?: Badge[];
+  organization?: Organization;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  plan: PlanType;
+  max_students: number;
+  max_videos_per_month: number;
+  created_at: string;
 }
 
 export interface Course {
@@ -24,6 +36,9 @@ export interface Course {
   category: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   lessons?: Lesson[];
+  student_count?: number;
+  resource_count?: number;
+  created_at?: string;
 }
 
 export interface Lesson {
@@ -44,6 +59,10 @@ export interface LessonResource {
   file?: string;
   description: string;
   order: number;
+  script?: string;
+  transcript?: string;
+  audio_url?: string;
+  status?: ResourceStatus;
 }
 
 export interface Resource {
@@ -73,8 +92,45 @@ export interface Question {
   id: string;
   text: string;
   options: string[];
-  correctAnswer: number;
+  correctAnswer?: number;
   explanation?: string;
+}
+
+export interface QuizResult {
+  id: string;
+  score: number;
+  max_score: number;
+  weak_topics: string[];
+  strong_topics: string[];
+  ai_feedback: string;
+  recommendations: string[];
+  answers: Array<{ question_id: number; selected: number; correct: boolean }>;
+  completed_at: string;
+  correct_answers: number;
+  total_questions: number;
+  student_name: string;
+  test_title: string;
+}
+
+export interface CourseEnrollment {
+  id: string;
+  student_id: string;
+  student_name: string;
+  course_id: string;
+  course_title: string;
+  enrolled_at: string;
+  progress_percent: number;
+}
+
+export interface VideoProgress {
+  id: string;
+  student_id: string;
+  lesson_resource_id: string;
+  watched_seconds: number;
+  total_seconds: number;
+  progress_percent: number;
+  completed: boolean;
+  last_watched: string;
 }
 
 export interface Badge {
@@ -135,4 +191,29 @@ export interface Statistics {
   activeUsers: number;
   completionRate: number;
   averageScore: number;
+}
+
+export interface TeacherDashboard {
+  total_students: number;
+  total_courses: number;
+  total_videos: number;
+  avg_score: number;
+  recent_results: QuizResult[];
+  weak_topics_summary: Array<{ topic: string; count: number }>;
+  monthly_videos_used: number;
+  monthly_videos_limit: number;
+}
+
+export interface StudentDashboard {
+  enrolled_courses: CourseEnrollment[];
+  completed_videos: number;
+  avg_quiz_score: number;
+  weak_topics: string[];
+  recommendations: string[];
+  recent_activity: Array<{ type: string; title: string; date: string; score?: number }>;
+}
+
+export interface ProgressUpdate {
+  status: ResourceStatus;
+  message: string;
 }

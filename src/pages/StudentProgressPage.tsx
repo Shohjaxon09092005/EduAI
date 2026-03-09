@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatsCard } from '@/components/ui/StatsCard';
 import { ProgressRing } from '@/components/ui/ProgressRing';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import analyticsService from '@/services/analytics.service';
+import enrollmentService from '@/services/enrollment.service';
+import { StudentDashboard } from '@/types';
 import {
   BookOpen,
   Trophy,
@@ -21,47 +26,38 @@ import {
 import { cn } from '@/lib/utils';
 
 const StudentProgressPage: React.FC = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
+  const [dashStats, setDashStats] = useState<StudentDashboard | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
 
-  const stats = {
-    completedLessons: 47,
-    totalLessons: 78,
-    currentLevel: 9,
-    xp: 3847,
-    avgScore: 85,
-    studyHours: 127,
-    streak: 12,
-  };
+  // Fetch student progress data
+  useEffect(() => {
+    const loadProgressData = async () => {
+      setLoadingStats(true);
+      try {
+        const stats = await analyticsService.getStudentDashboard();
+        setDashStats(stats);
+      } catch (error) {
+        console.error('Failed to load progress data:', error);
+        toast({
+          title: "Xato",
+          description: "Progress ma'lumotlarini yuklab olishda xato",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingStats(false);
+      }
+    };
 
-  const recentCourses = [
-    { id: 1, title: 'JavaScript asoslari', progress: 65, completed: 16, total: 24, lastActivity: '2 soat oldin' },
-    { id: 2, title: 'React frameworki', progress: 30, completed: 6, total: 18, lastActivity: 'Kecha' },
-    { id: 3, title: 'TypeScript', progress: 0, completed: 0, total: 16, lastActivity: 'Boshlanmagan' },
-  ];
-
-  const achievements = [
-    { id: 1, title: 'Birinchi qadamlar', description: 'Birinchi kursni boshlash', icon: '🚀', unlocked: true },
-    { id: 2, title: 'O\'qish ashaddiyi', description: '7 kun ketma-ket o\'qish', icon: '🔥', unlocked: true },
-    { id: 3, title: 'Test ustasi', description: '10 ta testdan o\'tish', icon: '🏆', unlocked: true },
-    { id: 4, title: 'Kurs tugatuvchi', description: 'Birinchi kursni tugatish', icon: '📜', unlocked: false },
-    { id: 5, title: 'Top talaba', description: 'Eng yaxshi 10 talaba qatoriga kirish', icon: '⭐', unlocked: false },
-  ];
-
-  const weeklyProgress = [
-    { day: 'Dush', hours: 2.5, lessons: 3 },
-    { day: 'Sesh', hours: 1.8, lessons: 2 },
-    { day: 'Chor', hours: 3.2, lessons: 4 },
-    { day: 'Pay', hours: 2.0, lessons: 2 },
-    { day: 'Jum', hours: 1.5, lessons: 2 },
-    { day: 'Shan', hours: 4.0, lessons: 5 },
-    { day: 'Yak', hours: 2.8, lessons: 3 },
-  ];
-
-  const nextLevelXP = 5000;
-  const progressToNextLevel = (stats.xp / nextLevelXP) * 100;
+    if (user) {
+      loadProgressData();
+    }
+  }, [user, toast]);
 
   return (
-    <DashboardLayout role="student" title="Progress" userName="Talaba">
+    <DashboardLayout role="student" title="Progress" userName={user?.name || user?.email || 'Talaba'}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -114,26 +110,25 @@ const StudentProgressPage: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatsCard
             title="Bajarilgan darslar"
-            value={`${stats.completedLessons}/${stats.totalLessons}`}
+            value={loadingStats ? '...' : String(dashStats?.completed_videos || 0)}
             icon={BookOpen}
             variant="primary"
           />
           <StatsCard
-            title="Joriy daraja"
-            value={stats.currentLevel.toString()}
+            title="Ro'y berilgan kurslar"
+            value={loadingStats ? '...' : String(dashStats?.enrolled_courses?.length || 0)}
             icon={Trophy}
             variant="accent"
           />
           <StatsCard
-            title="XP ballar"
-            value={stats.xp.toLocaleString()}
+            title="Qo'rgilanish kerak"
+            value={loadingStats ? '...' : String(dashStats?.weak_topics?.length || 0)}
             icon={Zap}
             variant="warning"
-            trend={{ value: 250, isPositive: true }}
           />
           <StatsCard
             title="O\'rtacha ball"
-            value={`${stats.avgScore}%`}
+            value={loadingStats ? '...' : `${dashStats?.avg_quiz_score || 0}%`}
             icon={Target}
             variant="success"
           />
@@ -147,25 +142,25 @@ const StudentProgressPage: React.FC = () => {
         >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-display font-semibold text-lg">Daraja progressi</h3>
-              <p className="text-sm text-muted-foreground">Keyingi darajaga {nextLevelXP - stats.xp.toLocaleString()} XP qoldi</p>
+              <h3 className="font-display font-semibold text-lg">O\'rganish darajasi</h3>
+              <p className="text-sm text-muted-foreground">Keyingi bosqichga {Math.round((100 - (dashStats?.avg_quiz_score || 0)) * 10)} XP qoldi</p>
             </div>
             <div className="text-right">
-              <p className="text-3xl font-bold gradient-text">Level {stats.currentLevel}</p>
-              <p className="text-sm text-muted-foreground">Next: Level {stats.currentLevel + 1}</p>
+              <p className="text-3xl font-bold gradient-text">Level {Math.floor((dashStats?.avg_quiz_score || 0) / 10) + 1}</p>
+              <p className="text-sm text-muted-foreground">Keyingi: Level {Math.floor((dashStats?.avg_quiz_score || 0) / 10) + 2}</p>
             </div>
           </div>
           <div className="h-4 rounded-full bg-muted overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${progressToNextLevel}%` }}
+              animate={{ width: `${dashStats?.avg_quiz_score || 0}%` }}
               transition={{ duration: 1 }}
               className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
             />
           </div>
           <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-            <span>{stats.xp.toLocaleString()} XP</span>
-            <span>{nextLevelXP.toLocaleString()} XP</span>
+            <span>{dashStats?.avg_quiz_score || 0}%</span>
+            <span>100%</span>
           </div>
         </motion.div>
 
@@ -180,32 +175,24 @@ const StudentProgressPage: React.FC = () => {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-primary" />
-                <h3 className="font-display font-semibold text-lg">Haftalik o\'qish vaqti</h3>
+                <h3 className="font-display font-semibold text-lg">Haftalik o\'qish faoliyati</h3>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold">{stats.studyHours} soat</p>
-                <p className="text-sm text-muted-foreground">Jami bu hafta</p>
+                <p className="text-2xl font-bold">{(dashStats?.avg_quiz_score || 0) * 1.5}%</p>
+                <p className="text-sm text-muted-foreground">O\'rtacha samaradorlik</p>
               </div>
             </div>
             <div className="h-48 flex items-end justify-around gap-2">
-              {weeklyProgress.map((day, index) => (
+              {['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'].map((day, index) => (
                 <motion.div
-                  key={day.day}
+                  key={day}
                   initial={{ height: 0 }}
-                  animate={{ height: `${(day.hours / 5) * 100}%` }}
+                  animate={{ height: `${20 + Math.random() * 70}%` }}
                   transition={{ delay: index * 0.1, duration: 0.5 }}
                   className="flex-1 flex flex-col items-center gap-2 group"
                 >
-                  <div className="w-full max-w-12 bg-gradient-to-t from-primary to-accent rounded-t-lg transition-all group-hover:opacity-80 relative" style={{ height: `${(day.hours / 5) * 100}%` }}>
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      whileHover={{ opacity: 1 }}
-                      className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded bg-foreground text-background text-xs whitespace-nowrap"
-                    >
-                      {day.hours} soat
-                    </motion.div>
-                  </div>
-                  <span className="text-xs text-muted-foreground font-medium">{day.day}</span>
+                  <div className="w-full max-w-12 bg-gradient-to-t from-primary to-accent rounded-t-lg transition-all group-hover:opacity-80" style={{ height: `${20 + Math.random() * 70}%` }}></div>
+                  <span className="text-xs text-muted-foreground font-medium">{day}</span>
                 </motion.div>
               ))}
             </div>
@@ -226,11 +213,11 @@ const StudentProgressPage: React.FC = () => {
                     <Clock className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">O\'rtacha kunlik</p>
-                    <p className="text-sm text-muted-foreground">O\'qish vaqti</p>
+                    <p className="font-medium">O\'rtacha skor</p>
+                    <p className="text-sm text-muted-foreground">Quiz natijasi</p>
                   </div>
                 </div>
-                <span className="font-bold">2.4 soat</span>
+                <span className="font-bold">{dashStats?.avg_quiz_score || 0}%</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
                 <div className="flex items-center gap-3">
@@ -238,11 +225,11 @@ const StudentProgressPage: React.FC = () => {
                     <Calendar className="w-5 h-5 text-accent" />
                   </div>
                   <div>
-                    <p className="font-medium">Ketma-ket</p>
-                    <p className="text-sm text-muted-foreground">O\'qish kunlari</p>
+                    <p className="font-medium">Kurslar</p>
+                    <p className="text-sm text-muted-foreground">Ro'y berilgan</p>
                   </div>
                 </div>
-                <span className="font-bold">{stats.streak} kun</span>
+                <span className="font-bold">{dashStats?.enrolled_courses?.length || 0}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
                 <div className="flex items-center gap-3">
@@ -250,8 +237,8 @@ const StudentProgressPage: React.FC = () => {
                     <TrendingUp className="w-5 h-5 text-success" />
                   </div>
                   <div>
-                    <p className="font-medium">O\'sish</p>
-                    <p className="text-sm text-muted-foreground">O\'tgan oydan</p>
+                    <p className="font-medium">Taqlid</p>
+                    <p className="text-sm text-muted-foreground">O\'rta holati</p>
                   </div>
                 </div>
                 <span className="font-bold text-success">+15%</span>
@@ -268,43 +255,50 @@ const StudentProgressPage: React.FC = () => {
         >
           <h3 className="font-display font-semibold text-lg mb-6">Kurslar progressi</h3>
           <div className="space-y-4">
-            {recentCourses.map((course, index) => (
-              <motion.div
-                key={course.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <BookOpen className="w-5 h-5 text-primary" />
+            {loadingStats ? (
+              <p className="text-muted-foreground">Yuklanmoqda...</p>
+            ) : dashStats?.enrolled_courses && dashStats.enrolled_courses.length > 0 ? (
+              dashStats.enrolled_courses.map((course, index) => (
+                <motion.div
+                  key={course.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <BookOpen className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium">{course.course_title}</h4>
+                        <p className="text-sm text-muted-foreground">{course.progress_percent.toFixed(0)}% bajarildi</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-medium">{course.title}</h4>
-                      <p className="text-sm text-muted-foreground">{course.completed}/{course.total} dars</p>
+                    <div className="text-right">
+                      <p className="font-bold text-primary">{course.progress_percent.toFixed(0)}%</p>
+                      <p className="text-xs text-muted-foreground">Yangi</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-primary">{course.progress}%</p>
-                    <p className="text-xs text-muted-foreground">{course.lastActivity}</p>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${course.progress_percent}%` }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
+                    />
                   </div>
-                </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${course.progress}%` }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
-                  />
-                </div>
               </motion.div>
-            ))}
+            ))) : (
+              <div className="p-4 rounded-xl bg-muted/30">
+                <p className="text-sm text-muted-foreground">Hozircha kurslarga yozilmagan</p>
+              </div>
+            )}
           </div>
         </motion.div>
 
-        {/* Achievements */}
+        {/* Weak Topics & Recommendations */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -313,45 +307,41 @@ const StudentProgressPage: React.FC = () => {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Award className="w-5 h-5 text-warning" />
-              <h3 className="font-display font-semibold text-lg">Yutuqlar</h3>
+              <h3 className="font-display font-semibold text-lg">Qo'rgilanish kerak mavzular</h3>
             </div>
             <span className="text-sm text-muted-foreground">
-              {achievements.filter(a => a.unlocked).length}/{achievements.length} ochilgan
+              {loadingStats ? '...' : `${dashStats?.weak_topics?.length || 0} ta`}
             </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {achievements.map((achievement, index) => (
-              <motion.div
-                key={achievement.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
-                className={cn(
-                  'p-4 rounded-xl border-2 transition-all',
-                  achievement.unlocked
-                    ? 'bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20'
-                    : 'bg-muted/30 border-border/50 opacity-50'
-                )}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={cn(
-                    'w-12 h-12 rounded-xl flex items-center justify-center text-2xl',
-                    achievement.unlocked ? 'bg-warning' : 'bg-muted'
-                  )}>
-                    {achievement.icon}
+          <div className="space-y-3">
+            {loadingStats ? (
+              <p className="text-muted-foreground">Yuklanmoqda...</p>
+            ) : dashStats?.weak_topics && dashStats.weak_topics.length > 0 ? (
+              dashStats.weak_topics.slice(0, 5).map((topic, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="p-4 rounded-xl border-2 bg-warning/10 border-warning/20"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-warning flex items-center justify-center text-lg">
+                      📚
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium">{topic}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">Bu mavzuda ko'proq mashq qilish tavsiya etiladi</p>
+                    </div>
+                    <CheckCircle2 className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium">{achievement.title}</h4>
-                    <p className="text-sm text-muted-foreground mt-1">{achievement.description}</p>
-                  </div>
-                  {achievement.unlocked ? (
-                    <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
-                  ) : (
-                    <Circle className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                  )}
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))
+            ) : (
+              <div className="p-4 rounded-xl border-2 bg-success/10 border-success/20">
+                <p className="text-sm text-success font-medium">✨ Ajoyib! Barcha mavzular bo'yicha yaxshi</p>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
