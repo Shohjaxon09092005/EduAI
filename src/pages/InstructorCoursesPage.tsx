@@ -23,6 +23,7 @@ import {
   updateCourse,
   deleteCourse,
   getCategories,
+  getInstructorStudentsStats,
   Category,
   CoursePayload,
 } from '@/lib/api';
@@ -37,6 +38,7 @@ const InstructorCoursesPage: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [totalStudentCount, setTotalStudentCount] = useState<number>(0);
 
   const [formData, setFormData] = useState<Partial<CoursePayload>>({
     title: '',
@@ -51,15 +53,18 @@ const InstructorCoursesPage: React.FC = () => {
   useEffect(() => {
     if (!tokens) return;
     setLoading(true);
-    Promise.all([getCourses(), getCategories()])
-      .then(([data, cats]) => {
+    Promise.all([getCourses(), getCategories(), getInstructorStudentsStats()])
+      .then(([data, cats, stats]) => {
         if (user?.id) {
           const uid = String(user.id);
-          setCourses(data.filter(c => c.instructorId === uid));
+          const instructorCourses = data.filter(c => c.instructorId === uid);
+          setCourses(instructorCourses);
         } else {
           setCourses(data);
         }
         setCategories(cats);
+        // set active student count from API stats
+        setTotalStudentCount(stats.active);
       })
       .catch(err => console.error('load failed', err))
       .finally(() => setLoading(false));
@@ -166,7 +171,7 @@ const InstructorCoursesPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Talabalar</p>
-                <p className="text-2xl font-bold mt-1">324</p>
+                <p className="text-2xl font-bold mt-1">{totalStudentCount}</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
                 <Users className="w-6 h-6 text-accent" />

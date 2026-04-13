@@ -119,7 +119,7 @@ const InstructorAnalyticsPage: React.FC = () => {
         </div>
 
         {/* Overview Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
           <StatsCard
             title="Jami talabalar"
             value={
@@ -127,7 +127,7 @@ const InstructorAnalyticsPage: React.FC = () => {
             }
             icon={Users}
             variant="primary"
-            trend={{ value: 12, isPositive: true }}
+            trend={{ value: 4, isPositive: true }}
           />
           <StatsCard
             title="Faol kurslar"
@@ -135,12 +135,12 @@ const InstructorAnalyticsPage: React.FC = () => {
             icon={BookOpen}
             variant="accent"
           />
-          <StatsCard
+          {/* <StatsCard
             title="Videoishlar"
             value={loadingStats ? "..." : String(dashStats?.total_videos || 0)}
             icon={Activity}
             variant="success"
-          />
+          /> */}
           <StatsCard
             title="O'rtacha ball"
             value={loadingStats ? "..." : `${dashStats?.avg_score || 0}%`}
@@ -158,62 +158,12 @@ const InstructorAnalyticsPage: React.FC = () => {
             icon={Award}
             variant="default"
           />
-          <StatsCard
-            title="Qo'rgilanish kerak"
-            value={
-              loadingStats
-                ? "..."
-                : String(dashStats?.weak_topics_summary?.length || 0)
-            }
-            icon={BarChart3}
-            variant="default"
-          />
+        
         </div>
 
         {/* Main Analytics Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Course Performance */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-6"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-display font-semibold text-lg">
-                Qo'rgilanish kerak mavzular
-              </h3>
-              <BarChart3 className="w-5 h-5 text-muted-foreground" />
-            </div>
-            <div className="space-y-4">
-              {loadingStats ? (
-                <p className="text-muted-foreground">Yuklanmoqda...</p>
-              ) : dashStats?.weak_topics_summary &&
-                dashStats.weak_topics_summary.length > 0 ? (
-                dashStats.weak_topics_summary.map((topic, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">{topic.topic}</span>
-                      <div className="flex gap-4 text-sm text-muted-foreground">
-                        <span>{topic.count} talaba</span>
-                      </div>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{
-                          width: `${(topic.count / (dashStats.total_students || 1)) * 100}%`,
-                        }}
-                        transition={{ delay: index * 0.1, duration: 0.8 }}
-                        className="bg-gradient-to-r from-primary to-accent h-2 rounded-full"
-                      />
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-muted-foreground">Hali ma'lumot yo'q</p>
-              )}
-            </div>
-          </motion.div>
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+          
 
           {/* Recent Activity */}
           <motion.div
@@ -305,52 +255,7 @@ const InstructorAnalyticsPage: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Performance Insights */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="glass-card p-6"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-display font-semibold text-lg">
-              Performance insights
-            </h3>
-            <TrendingUp className="w-5 h-5 text-muted-foreground" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl bg-success/10 border border-success/20">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="w-4 h-4 text-success" />
-                <span className="font-medium text-success">
-                  Yuqori performance
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                JavaScript asoslari kursi 87% o'rtacha ball bilan eng yaxshi
-                performance ko'rsatmoqda
-              </p>
-            </div>
-            <div className="p-4 rounded-xl bg-warning/10 border border-warning/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Target className="w-4 h-4 text-warning" />
-                <span className="font-medium text-warning">E'tibor kerak</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Frontend Development kursida tugallash darajasi past (68%)
-              </p>
-            </div>
-            <div className="p-4 rounded-xl bg-accent/10 border border-accent/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="w-4 h-4 text-accent" />
-                <span className="font-medium text-accent">O'sish sur'ati</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Talabalar soni o'tgan oyga nisbatan 12% ga oshdi
-              </p>
-            </div>
-          </div>
-        </motion.div>
+      
       </div>
     </DashboardLayout>
   );

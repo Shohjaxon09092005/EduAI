@@ -27,6 +27,7 @@ import StudentResourcesPage from "./pages/StudentResourcesPage";
 import StudentTestsPage from "./pages/StudentTestsPage";
 import StudentProgressPage from "./pages/StudentProgressPage";
 import StudentSettingsPage from "./pages/StudentSettingsPage";
+import CourseDiscoveryPage from "./pages/CourseDiscoveryPage";
 import CourseDetailPage from "./pages/CourseDetailPage";
 import NotFound from "./pages/NotFound";
 
@@ -165,6 +166,14 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={["student"]}>
                     <StudentCoursesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/discover"
+                element={
+                  <ProtectedRoute allowedRoles={["student"]}>
+                    <CourseDiscoveryPage />
                   </ProtectedRoute>
                 }
               />

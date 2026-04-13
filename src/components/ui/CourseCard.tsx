@@ -1,23 +1,28 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { 
-  BookOpen, 
-  Users, 
-  Clock, 
+import {
+  BookOpen,
+  Users,
+  Clock,
   ChevronRight,
   Play,
   Edit,
   Trash2,
-  BarChart3
+  BarChart3,
+  UserPlus,
+  CheckCircle,
+  Loader
 } from 'lucide-react';
 import { Course } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface CourseCardProps {
   course: Course;
-  variant?: 'student' | 'instructor' | 'admin';
-  onAction?: (action: 'view' | 'edit' | 'delete' | 'start', courseId: string) => void;
+  variant?: 'student' | 'instructor' | 'admin' | 'discovery';
+  enrolled?: boolean;
+  enrolling?: boolean;
+  onAction?: (action: 'view' | 'edit' | 'delete' | 'start' | 'enroll', courseId: string) => void;
 }
 
 const difficultyColors = {
@@ -32,10 +37,12 @@ const difficultyLabels = {
   advanced: 'Murakkab',
 };
 
-export const CourseCard: React.FC<CourseCardProps> = ({ 
-  course, 
+export const CourseCard: React.FC<CourseCardProps> = ({
+  course,
   variant = 'student',
-  onAction 
+  enrolled = false,
+  enrolling = false,
+  onAction
 }) => {
   const navigate = useNavigate();
   const progress = course.progress || 0;
@@ -181,6 +188,45 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 className="px-4 py-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
+              </motion.button>
+            </>
+          )}
+
+          {variant === 'discovery' && (
+            <>
+              {enrolled ? (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleViewCourse}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-success text-success-foreground font-medium hover:shadow-lg hover:shadow-success/25 transition-all"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Yozilgan
+                </motion.button>
+              ) : (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => onAction?.('enroll', course.id)}
+                  disabled={enrolling}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:shadow-lg hover:shadow-primary/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {enrolling ? (
+                    <Loader className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <UserPlus className="w-4 h-4" />
+                  )}
+                  {enrolling ? 'Yozilmoqda...' : 'Yozilish'}
+                </motion.button>
+              )}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleViewCourse}
+                className="px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+              >
+                <BookOpen className="w-4 h-4" />
               </motion.button>
             </>
           )}

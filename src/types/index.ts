@@ -75,6 +75,16 @@ export interface Resource {
   aiTopics?: string[];
   courseId: string;
   category: string;
+  // AI Pipeline fields
+  transcript?: string;
+  script?: string;
+  audio_url?: string;
+  processing_status?: 'idle' | 'extracting' | 'scripting' | 'audio' | 'video' | 'quiz' | 'ready' | 'failed';
+  error_message?: string;
+  lesson?: {
+    id: number;
+    title: string;
+  };
 }
 
 export interface Test {

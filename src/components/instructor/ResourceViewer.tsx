@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { Resource } from '@/types';
 import api from '@/lib/api';
 import { toast } from 'sonner';
+import { AIResourceActions } from './AIResourceActions';
 
 interface ResourceViewerProps {
   resources?: Resource[];
@@ -298,6 +299,25 @@ export const ResourceViewer: React.FC<ResourceViewerProps> = ({
                 </div>
               </div>
             )}
+
+            {/* AI Pipeline Actions */}
+            <div className="p-4 border-t border-border/50 bg-muted/30">
+              <div className="mb-3">
+                <h4 className="text-sm font-semibold mb-3">🤖 AI Pipeline</h4>
+              </div>
+              <AIResourceActions
+                resourceId={Number(selectedResource.id)}
+                resourceTitle={selectedResource.title}
+                hasTranscript={!!(selectedResource as any).transcript}
+                onVideoCreated={() => {
+                  // Refresh to show updated status
+                  setTimeout(() => setSelectedResource(null), 1000);
+                }}
+                onTestCreated={() => {
+                  setSelectedResource(null);
+                }}
+              />
+            </div>
           </motion.div>
         </motion.div>
       )}

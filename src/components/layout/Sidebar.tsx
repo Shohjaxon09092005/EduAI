@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Bell,
   LogOut,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserRole } from "@/types";
@@ -46,6 +47,7 @@ const instructorLinks = [
 
 const studentLinks = [
   { icon: LayoutDashboard, label: "Boshqaruv paneli", path: "/student" },
+  { icon: Search, label: "Kurslarni kashf etish", path: "/student/discover" },
   { icon: BookOpen, label: "Kurslarim", path: "/student/courses" },
   { icon: FolderOpen, label: "Resurslar", path: "/student/resources" },
   { icon: ClipboardList, label: "Testlar", path: "/student/tests" },

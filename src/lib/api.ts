@@ -1117,3 +1117,22 @@ export const getTestResults = async (testId?: number): Promise<ApiTestResult[]> 
   return response.json();
 };
 
+export interface InstructorStudentsStats {
+  total: number;
+  active: number;
+  inactive: number;
+  topPerformers: number;
+}
+
+export const getInstructorStudentsStats = async (): Promise<InstructorStudentsStats> => {
+  const response = await apiFetch('/auth/instructor-students-stats/', { method: 'GET' });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    console.warn('getInstructorStudentsStats failed', response.status, text);
+    throw new Error(`Failed to fetch instructor students stats: ${text}`);
+  }
+
+  return response.json();
+};
+

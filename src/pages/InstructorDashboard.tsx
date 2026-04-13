@@ -307,71 +307,7 @@ const InstructorDashboard: React.FC = () => {
             className="space-y-6"
           >
             {/* AI Tools */}
-            <div className="glass-card p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="w-5 h-5 text-accent" />
-                <h3 className="font-display font-semibold text-lg">
-                  AI vositalari
-                </h3>
-              </div>
-
-              <div className="space-y-3">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full p-4 rounded-xl bg-gradient-to-r from-primary/10 to-accent/10 
-                           border border-primary/20 hover:border-primary/40 transition-all text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                      <ClipboardList className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Test yaratish</p>
-                      <p className="text-sm text-muted-foreground">
-                        AI yordamida
-                      </p>
-                    </div>
-                  </div>
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full p-4 rounded-xl bg-muted/50 hover:bg-muted transition-all text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-accent" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Topshiriq yaratish</p>
-                      <p className="text-sm text-muted-foreground">
-                        Resurslar asosida
-                      </p>
-                    </div>
-                  </div>
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full p-4 rounded-xl bg-muted/50 hover:bg-muted transition-all text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-success/20 flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-success" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Tahlil ko'rish</p>
-                      <p className="text-sm text-muted-foreground">
-                        Talabalar progressi
-                      </p>
-                    </div>
-                  </div>
-                </motion.button>
-              </div>
-            </div>
+          
 
             {/* Recent Activity */}
             <div className="glass-card p-6">

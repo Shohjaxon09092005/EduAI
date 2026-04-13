@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -8,10 +9,12 @@ import {
   BookOpen, 
   Search, 
   Grid3x3,
-  List
+  List,
+  Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCourses } from '@/lib/api';
+import enrollmentService from '@/services/enrollment.service';
 
 // NOTE: We previously used a mocked list for layout/development purposes.  
 // Once the backend is available we fetch real data from the API instead.
@@ -29,15 +32,35 @@ const StudentCoursesPage: React.FC = () => {
   const { user, tokens } = useAuth();
 
   useEffect(() => {
-    setLoading(true);
-    getCourses()
-      .then((data) => setCourses(data))
-      .catch((err) => {
-        console.error('Failed to load courses', err);
-        // optionally handle unauthorized by redirecting to login or showing message
-      })
-      .finally(() => setLoading(false));
+    loadEnrolledCourses();
   }, [tokens]);
+
+  const loadEnrolledCourses = async () => {
+    if (!tokens) return;
+
+    setLoading(true);
+    try {
+      // Load user's enrollments
+      const enrollments = await enrollmentService.getMyEnrollments();
+      
+      // Normalize IDs so backend numeric IDs and frontend string IDs both match
+      const enrolledCourseIds = new Set(enrollments.map((e: any) => String(e.course)));
+      if (enrolledCourseIds.size > 0) {
+        const allCourses = await getCourses();
+        const enrolledCourses = allCourses.filter(course => 
+          enrolledCourseIds.has(String(course.id))
+        );
+        setCourses(enrolledCourses);
+      } else {
+        setCourses([]);
+      }
+    } catch (err) {
+      console.error('Failed to load enrolled courses', err);
+      setCourses([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredCourses = courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -62,8 +85,22 @@ const StudentCoursesPage: React.FC = () => {
   };
 
   return (
-    <DashboardLayout role="student" title="Kurslarim" userName={user?.name || user?.email || 'Talaba'}>
+    <DashboardLayout role="student" title="Mening kurslarim" userName={user?.name || user?.email || 'Talaba'}>
       <div className="space-y-6">
+        {/* Header with Discover Button */}
+        <div className="flex items-center justify-between">
+          <div></div>
+          <Link to="/student/discover">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:shadow-lg hover:shadow-primary/25 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              Kurslarni kashf etish
+            </motion.button>
+          </Link>
+        </div>
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <motion.div
@@ -233,8 +270,18 @@ const StudentCoursesPage: React.FC = () => {
             className="text-center py-12"
           >
             <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Kurslar topilmadi</h3>
-            <p className="text-muted-foreground">Qidiruv yoki filtrni o'zgartiring</p>
+            <h3 className="text-lg font-semibold mb-2">Siz hali kurslarga yozilmagansiz</h3>
+            <p className="text-muted-foreground mb-6">Yangi kurslarni kashf eting va o'rganishni boshlang</p>
+            <Link to="/student/discover">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:shadow-lg hover:shadow-primary/25 transition-all"
+              >
+                <Plus className="w-5 h-5" />
+                Kurslarni kashf etish
+              </motion.button>
+            </Link>
           </motion.div>
         )}
       </div>

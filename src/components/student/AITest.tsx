@@ -93,7 +93,7 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
       if (testId) {
         setIsSubmitting(true);
         const answersList = selectedAnswers.map(a => a ?? -1);
-        const response = await api.post(`/courses/test-results/`, {
+        const response = await api.post(`/test-results/`, {
           test: testId,
           answers: answersList,
           time_spent: timeSpentSeconds,
