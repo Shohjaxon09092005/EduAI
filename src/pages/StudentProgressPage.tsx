@@ -62,7 +62,7 @@ const StudentProgressPage: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold">O\'rganish progressi</h2>
+            <h2 className="text-2xl font-bold">O'rganish progressi</h2>
             <p className="text-muted-foreground mt-1">Natijalaringiz va yutuqlaringiz</p>
           </div>
           <motion.button
@@ -127,7 +127,7 @@ const StudentProgressPage: React.FC = () => {
             variant="warning"
           />
           <StatsCard
-            title="O\'rtacha ball"
+            title="O'rtacha ball"
             value={loadingStats ? '...' : `${dashStats?.avg_quiz_score || 0}%`}
             icon={Target}
             variant="success"
@@ -142,7 +142,7 @@ const StudentProgressPage: React.FC = () => {
         >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-display font-semibold text-lg">O\'rganish darajasi</h3>
+              <h3 className="font-display font-semibold text-lg">O'rganish darajasi</h3>
               <p className="text-sm text-muted-foreground">Keyingi bosqichga {Math.round((100 - (dashStats?.avg_quiz_score || 0)) * 10)} XP qoldi</p>
             </div>
             <div className="text-right">
@@ -175,11 +175,11 @@ const StudentProgressPage: React.FC = () => {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-primary" />
-                <h3 className="font-display font-semibold text-lg">Haftalik o\'qish faoliyati</h3>
+                <h3 className="font-display font-semibold text-lg">Haftalik o'qish faoliyati</h3>
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold">{(dashStats?.avg_quiz_score || 0) * 1.5}%</p>
-                <p className="text-sm text-muted-foreground">O\'rtacha samaradorlik</p>
+                <p className="text-sm text-muted-foreground">O'rtacha samaradorlik</p>
               </div>
             </div>
             <div className="h-48 flex items-end justify-around gap-2">
@@ -205,7 +205,7 @@ const StudentProgressPage: React.FC = () => {
             transition={{ delay: 0.1 }}
             className="glass-card p-6"
           >
-            <h3 className="font-display font-semibold text-lg mb-6">O\'qish statistikasi</h3>
+            <h3 className="font-display font-semibold text-lg mb-6">O'qish statistikasi</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
                 <div className="flex items-center gap-3">
@@ -213,7 +213,7 @@ const StudentProgressPage: React.FC = () => {
                     <Clock className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">O\'rtacha skor</p>
+                    <p className="font-medium">O'rtacha skor</p>
                     <p className="text-sm text-muted-foreground">Quiz natijasi</p>
                   </div>
                 </div>
@@ -238,7 +238,7 @@ const StudentProgressPage: React.FC = () => {
                   </div>
                   <div>
                     <p className="font-medium">Taqlid</p>
-                    <p className="text-sm text-muted-foreground">O\'rta holati</p>
+                    <p className="text-sm text-muted-foreground">O'rta holati</p>
                   </div>
                 </div>
                 <span className="font-bold text-success">+15%</span>
@@ -307,7 +307,7 @@ const StudentProgressPage: React.FC = () => {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Award className="w-5 h-5 text-warning" />
-              <h3 className="font-display font-semibold text-lg">Qo'rgilanish kerak mavzular</h3>
+              <h3 className="font-display font-semibold text-lg">O'rganilishi kerak mavzular</h3>
             </div>
             <span className="text-sm text-muted-foreground">
               {loadingStats ? '...' : `${dashStats?.weak_topics?.length || 0} ta`}

@@ -15,20 +15,22 @@ import {
   Download,
   UserCheck,
   UserX,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
-import api from '@/lib/api';
+import { getInstructorStudents, getInstructorStudentsStats, InstructorStudent, InstructorStudentsStats } from '@/lib/api';
 import { toast } from 'sonner';
 
 const InstructorStudentsPage: React.FC = () => {
-  const [students, setStudents] = useState<any[]>([]);
-  const [stats, setStats] = useState({
+  const [students, setStudents] = useState<InstructorStudent[]>([]);
+  const [stats, setStats] = useState<InstructorStudentsStats>({
     total: 0,
     active: 0,
     inactive: 0,
     topPerformers: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
@@ -36,16 +38,30 @@ const InstructorStudentsPage: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [statsRes, studentsRes] = await Promise.all([
-          api.get('/auth/instructor-students-stats/'),
-          api.get('/auth/instructor-students/'),
+        setIsLoading(true);
+        setError(null);
+        
+        console.log('📚 Loading instructor students data...');
+        
+        const [statsData, studentsData] = await Promise.all([
+          getInstructorStudentsStats(),
+          getInstructorStudents(),
         ]);
         
-        setStats(statsRes.data);
-        setStudents(studentsRes.data);
+        console.log('✅ Stats loaded:', statsData);
+        console.log('✅ Students loaded:', studentsData?.length || 0, 'students');
+        
+        setStats(statsData);
+        setStudents(studentsData || []);
+        
+        if (studentsData?.length === 0) {
+          toast.info('Hozircha talabalar yo\'q. Kurs yarating va talabalarni yozishga taklif eting.');
+        }
       } catch (error) {
-        console.error('Failed to load instructor students data:', error);
-        toast.error('Talabalar ma\'lumotlarini yuklab olish muvaffaqiyatli bo\'lmadi');
+        const errorMessage = error instanceof Error ? error.message : 'Noma\'lum xato';
+        console.error('❌ Failed to load instructor students data:', error);
+        setError(errorMessage);
+        toast.error(`Talabalar ma'lumotlarini yuklab olish to'xtadi: ${errorMessage}`);
       } finally {
         setIsLoading(false);
       }
@@ -58,7 +74,7 @@ const InstructorStudentsPage: React.FC = () => {
     const name = String(student.name || '');
     const email = String(student.email || '');
     const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         email.toLowerCase().includes(searchQuery.toLowerCase());
+                        email.toLowerCase().includes(searchQuery.toLowerCase());
     
     let matchesFilter = true;
     if (filterStatus === 'high-progress') {
@@ -72,8 +88,9 @@ const InstructorStudentsPage: React.FC = () => {
     return matchesSearch && matchesFilter;
   });
 
-  const getStatusIcon = (student: any) => {
+  const getStatusIcon = (student: InstructorStudent) => {
     // Determine status based on recent activity (if enrolled recently, consider active)
+    if (!student.enrolledDate) return UserX;
     const enrolledDate = new Date(student.enrolledDate);
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -81,7 +98,8 @@ const InstructorStudentsPage: React.FC = () => {
     return enrolledDate > thirtyDaysAgo ? UserCheck : UserX;
   };
 
-  const getStatusColor = (student: any) => {
+  const getStatusColor = (student: InstructorStudent) => {
+    if (!student.enrolledDate) return 'text-muted-foreground';
     const enrolledDate = new Date(student.enrolledDate);
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -104,14 +122,38 @@ const InstructorStudentsPage: React.FC = () => {
   return (
     <DashboardLayout role="instructor" title="Talabalar" userName="Aziz Domla">
       <div className="space-y-6">
+        {/* Error State */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-3"
+          >
+            <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-destructive">Ma'lumot yuklashda xato</p>
+              <p className="text-sm text-destructive/90 mt-1">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 px-3 py-1 text-sm rounded-md bg-destructive/20 hover:bg-destructive/30 text-destructive transition-colors"
+              >
+                Qayta yuklash
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Loading State */}
         {isLoading && (
           <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              <p className="text-muted-foreground">Talabalar ma'lumotlari yuklanmoqda...</p>
+            </div>
           </div>
         )}
 
-        {!isLoading && (
+        {!isLoading && !error && (
           <>
             {/* Stats Overview */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

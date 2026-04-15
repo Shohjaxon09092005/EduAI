@@ -110,6 +110,12 @@ export interface CoursePayload {
 export interface Category {
   id: number;
   name: string;
+  description?: string;
+}
+
+export interface CategoryPayload {
+  name: string;
+  description?: string;
 }
 
 export const getCategories = async (): Promise<Category[]> => {
@@ -118,6 +124,21 @@ export const getCategories = async (): Promise<Category[]> => {
     const txt = await response.text().catch(() => '');
     console.warn('getCategories failed', response.status, txt);
     throw new Error('Failed to fetch categories');
+  }
+  return response.json();
+};
+
+export const createCategory = async (data: CategoryPayload): Promise<Category> => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const body = JSON.stringify(data);
+  const response = await apiFetch(`/categories/`, {
+    method: 'POST',
+    headers,
+    body,
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to create category');
   }
   return response.json();
 };
@@ -1124,6 +1145,18 @@ export interface InstructorStudentsStats {
   topPerformers: number;
 }
 
+export interface InstructorStudent {
+  id: string;
+  name: string;
+  email: string;
+  level: number;
+  xp: number;
+  progress: number;
+  score: number;
+  testsCount: number;
+  enrolledDate?: string;
+}
+
 export const getInstructorStudentsStats = async (): Promise<InstructorStudentsStats> => {
   const response = await apiFetch('/auth/instructor-students-stats/', { method: 'GET' });
 
@@ -1131,6 +1164,18 @@ export const getInstructorStudentsStats = async (): Promise<InstructorStudentsSt
     const text = await response.text().catch(() => '');
     console.warn('getInstructorStudentsStats failed', response.status, text);
     throw new Error(`Failed to fetch instructor students stats: ${text}`);
+  }
+
+  return response.json();
+};
+
+export const getInstructorStudents = async (): Promise<InstructorStudent[]> => {
+  const response = await apiFetch('/auth/instructor-students/', { method: 'GET' });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    console.warn('getInstructorStudents failed', response.status, text);
+    throw new Error(`Failed to fetch instructor students: ${text}`);
   }
 
   return response.json();

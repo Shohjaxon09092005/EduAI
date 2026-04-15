@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ResourceUploader } from "@/components/instructor/ResourceUploader";
 import { ResourceViewer } from "@/components/instructor/ResourceViewer";
+import { CategoryCreationModal } from "@/components/modals/CategoryCreationModal";
 import { Resource } from "@/types";
 // import { resourceCategories } from '@/lib/mockData';
 import { FolderOpen, Search, Plus, Filter, X, Trash2 } from "lucide-react";
@@ -35,6 +36,7 @@ const InstructorResourcesPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("Barchasi");
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [courses, setCourses] = useState<any[]>([]);
@@ -456,22 +458,32 @@ const InstructorResourcesPage: React.FC = () => {
                         <label className="block text-sm font-medium mb-2">
                           Kategoriya <span className="text-destructive">*</span>
                         </label>
-                        <select
-                          className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                          value={modalCategoryId || ""}
-                          onChange={(e) =>
-                            setModalCategoryId(
-                              e.target.value ? Number(e.target.value) : null,
-                            )
-                          }
-                        >
-                          <option value="">--kategoriya tanlang--</option>
-                          {categories.map((cat) => (
-                            <option key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex gap-2">
+                          <select
+                            className="flex-1 px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                            value={modalCategoryId || ""}
+                            onChange={(e) =>
+                              setModalCategoryId(
+                                e.target.value ? Number(e.target.value) : null,
+                              )
+                            }
+                          >
+                            <option value="">--kategoriya tanlang--</option>
+                            {categories.map((cat) => (
+                              <option key={cat.id} value={cat.id}>
+                                {cat.name}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => setShowCategoryModal(true)}
+                            title="Yangi kategoriya qo'shish"
+                            className="px-3 py-2 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted transition-all"
+                          >
+                            <Plus className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -502,6 +514,16 @@ const InstructorResourcesPage: React.FC = () => {
             </>
           )}
         </AnimatePresence>
+
+        {/* Category Creation Modal */}
+        <CategoryCreationModal
+          isOpen={showCategoryModal}
+          onClose={() => setShowCategoryModal(false)}
+          onCategoryCreated={(newCategory) => {
+            setCategories((prev) => [...prev, newCategory]);
+            setModalCategoryId(newCategory.id);
+          }}
+        />
       </div>
     </DashboardLayout>
   );

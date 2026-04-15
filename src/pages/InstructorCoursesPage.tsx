@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { CourseCard } from '@/components/ui/CourseCard';
 import { CourseManagementPanel } from '@/components/CourseManagementPanel';
+import { CategoryCreationModal } from '@/components/modals/CategoryCreationModal';
 import { Course } from '@/types';
 import { 
   BookOpen, 
@@ -35,6 +36,7 @@ const InstructorCoursesPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'manage'>('grid');
   const [showModal, setShowModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -400,19 +402,29 @@ const InstructorCoursesPage: React.FC = () => {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <div>
                         <label className="block text-sm font-medium mb-2">Kategoriya</label>
-                        <select
-                          className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                          value={formData.category_id || ''}
-                          onChange={e => setFormData(f => ({ ...f, category_id: Number(e.target.value) }))}
-                        >
-                          <option value="">--kategoriya tanlang--</option>
-                          {categories.map(cat => (
-                            <option key={cat.id} value={cat.id}>{cat.name}</option>
-                          ))}
-                        </select>
+                        <div className="flex gap-2">
+                          <select
+                            className="flex-1 px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                            value={formData.category_id || ''}
+                            onChange={e => setFormData(f => ({ ...f, category_id: Number(e.target.value) }))}
+                          >
+                            <option value="">--kategoriya tanlang--</option>
+                            {categories.map(cat => (
+                              <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => setShowCategoryModal(true)}
+                            title="Yangi kategoriya qo'shish"
+                            className="px-3 py-2 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted transition-all"
+                          >
+                            <Plus className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
 
                       <div>
@@ -479,6 +491,16 @@ const InstructorCoursesPage: React.FC = () => {
             </>
           )}
         </AnimatePresence>
+
+        {/* Category Creation Modal */}
+        <CategoryCreationModal
+          isOpen={showCategoryModal}
+          onClose={() => setShowCategoryModal(false)}
+          onCategoryCreated={(newCategory) => {
+            setCategories((prev) => [...prev, newCategory]);
+            setFormData((f) => ({ ...f, category_id: newCategory.id }));
+          }}
+        />
       </div>
     </DashboardLayout>
   );

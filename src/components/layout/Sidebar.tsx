@@ -51,7 +51,7 @@ const studentLinks = [
   { icon: BookOpen, label: "Kurslarim", path: "/student/courses" },
   { icon: FolderOpen, label: "Resurslar", path: "/student/resources" },
   { icon: ClipboardList, label: "Testlar", path: "/student/tests" },
-  { icon: Trophy, label: "Yutuqlar", path: "/student/achievements" },
+  // { icon: Trophy, label: "Yutuqlar", path: "/student/achievements" },
   { icon: BarChart3, label: "Progress", path: "/student/progress" },
 ];
 

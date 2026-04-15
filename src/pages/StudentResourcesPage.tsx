@@ -20,24 +20,16 @@ const StudentResourcesPage: React.FC = () => {
   // Load resources for student's enrolled courses
   useEffect(() => {
     if (!tokens) return;
+    setLoading(true);
+
     Promise.all([getResources(), getCategories()])
       .then(([resourcesData, cats]) => {
+        console.log("Resources loaded:", resourcesData.length, resourcesData);
         setResources(resourcesData);
         setCategories(cats);
       })
       .catch((err) => {
         console.error("Failed to load:", err);
-        toast.error("Resurslar yuklanmadi");
-      })
-      .finally(() => setLoading(false));
-    setLoading(true);
-    getResources()
-      .then((data) => {
-        console.log("StudentResources loaded:", data.length);
-        setResources(data);
-      })
-      .catch((err) => {
-        console.error("Failed to load resources:", err);
         toast.error("Resurslar yuklanmadi");
       })
       .finally(() => setLoading(false));
@@ -74,7 +66,7 @@ const StudentResourcesPage: React.FC = () => {
           <div className="flex items-center gap-2 bg-accent/10 px-4 py-2 rounded-xl">
             <Sparkles className="w-5 h-5 text-accent" />
             <span className="text-sm font-medium text-accent">
-              AI tomonidan tavsiya etilganlar 
+              AI tomonidan tavsiya etilganlar
             </span>
           </div>
         </div>
@@ -129,10 +121,14 @@ const StudentResourcesPage: React.FC = () => {
         </motion.div>
 
         {/* Resources Grid */}
-        <ResourceViewer
-          resources={filteredResources}
-          onView={(resource) => console.log("Viewing resource:", resource)}
-        />
+        {filteredResources.length > 0 && (
+          <ResourceViewer
+            resources={filteredResources}
+            onView={(resource) => {
+              if (resource.url) window.open(resource.url, "_blank");
+            }}
+          />
+        )}
 
         {filteredResources.length === 0 && (
           <div className="text-center py-12">
