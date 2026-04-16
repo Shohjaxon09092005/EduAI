@@ -8,7 +8,7 @@ const Index = () => {
   const { theme, toggleTheme } = useTheme();
 
   const roles = [
-    { title: "Admin", desc: "Universitet boshqaruvi", path: "/login/admin", icon: Shield, color: "from-primary to-primary/70" },
+    // { title: "Admin", desc: "Universitet boshqaruvi", path: "/login/admin", icon: Shield, color: "from-primary to-primary/70" },
     { title: "Domla", desc: "O'qituvchi paneli", path: "/login/instructor", icon: BookOpen, color: "from-accent to-accent/70" },
     { title: "Talaba", desc: "O'quvchi paneli", path: "/login/student", icon: GraduationCap, color: "from-success to-success/70" },
   ];
@@ -56,7 +56,7 @@ const Index = () => {
           </motion.div>
 
           {/* Role Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
             {roles.map((role, index) => (
               <motion.div
                 key={role.path}

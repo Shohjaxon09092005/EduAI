@@ -281,7 +281,7 @@ export const ResourceViewer: React.FC<ResourceViewerProps> = ({
             </div>
 
             {/* AI Topics */}
-            {selectedResource.aiTopics && selectedResource.aiTopics.length > 0 && (
+            {/* {selectedResource.aiTopics && selectedResource.aiTopics.length > 0 && (
               <div className="p-4 border-t border-border/50 bg-accent/5">
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="w-4 h-4 text-accent" />
@@ -298,10 +298,10 @@ export const ResourceViewer: React.FC<ResourceViewerProps> = ({
                   ))}
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* AI Pipeline Actions */}
-            <div className="p-4 border-t border-border/50 bg-muted/30">
+            {/* <div className="p-4 border-t border-border/50 bg-muted/30">
               <div className="mb-3">
                 <h4 className="text-sm font-semibold mb-3">🤖 AI Pipeline</h4>
               </div>
@@ -317,7 +317,7 @@ export const ResourceViewer: React.FC<ResourceViewerProps> = ({
                   setSelectedResource(null);
                 }}
               />
-            </div>
+            </div> */}
           </motion.div>
         </motion.div>
       )}

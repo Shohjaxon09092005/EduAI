@@ -206,16 +206,7 @@ const InstructorDashboard: React.FC = () => {
                 >
                   Yuklash
                 </button>
-                <button
-                  onClick={() => setActiveTab("view")}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    activeTab === "view"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Resurslar
-                </button>
+                
               </div>
               <div className="flex items-center gap-2 text-sm text-accent">
                 <Sparkles className="w-4 h-4" />
