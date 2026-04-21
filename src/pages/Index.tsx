@@ -9,7 +9,7 @@ const Index = () => {
 
   const roles = [
     // { title: "Admin", desc: "Universitet boshqaruvi", path: "/login/admin", icon: Shield, color: "from-primary to-primary/70" },
-    { title: "Domla", desc: "O'qituvchi paneli", path: "/login/instructor", icon: BookOpen, color: "from-accent to-accent/70" },
+    { title: "O'qituvchi", desc: "O'qituvchi paneli", path: "/login/instructor", icon: BookOpen, color: "from-accent to-accent/70" },
     { title: "Talaba", desc: "O'quvchi paneli", path: "/login/student", icon: GraduationCap, color: "from-success to-success/70" },
   ];
 
