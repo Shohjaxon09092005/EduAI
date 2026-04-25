@@ -1,23 +1,24 @@
-import { useState } from 'react';
-import { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { CourseCard } from '@/components/ui/CourseCard';
-import { CourseManagementPanel } from '@/components/CourseManagementPanel';
-import { CategoryCreationModal } from '@/components/modals/CategoryCreationModal';
-import { Course } from '@/types';
-import { 
-  BookOpen, 
-  Search, 
+import { useState } from "react";
+import { useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { CourseCard } from "@/components/ui/CourseCard";
+import { CourseManagementPanel } from "@/components/CourseManagementPanel";
+import { CategoryCreationModal } from "@/components/modals/CategoryCreationModal";
+import { Course } from "@/types";
+import {
+  BookOpen,
+  Search,
   Plus,
   Grid3x3,
   List,
   Users,
   CheckCircle,
-  Clock
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
+  Clock,
+  Trash2 
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   getCourses,
   createCourse,
@@ -27,26 +28,31 @@ import {
   getInstructorStudentsStats,
   Category,
   CoursePayload,
-} from '@/lib/api';
+} from "@/lib/api";
 
 // the course list is loaded from the API instead of using mocks
 
 const InstructorCoursesPage: React.FC = () => {
   const { tokens, user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'manage'>('grid');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "manage">("grid");
   const [showModal, setShowModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [totalStudentCount, setTotalStudentCount] = useState<number>(0);
-
+  // O'chirish uchun state
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState<Partial<CoursePayload>>({
-    title: '',
-    description: '',
+    title: "",
+    description: "",
     category_id: undefined,
-    difficulty: 'beginner',
+    difficulty: "beginner",
     total_lessons: 0,
   });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -59,7 +65,7 @@ const InstructorCoursesPage: React.FC = () => {
       .then(([data, cats, stats]) => {
         if (user?.id) {
           const uid = String(user.id);
-          const instructorCourses = data.filter(c => c.instructorId === uid);
+          const instructorCourses = data.filter((c) => c.instructorId === uid);
           setCourses(instructorCourses);
         } else {
           setCourses(data);
@@ -68,75 +74,82 @@ const InstructorCoursesPage: React.FC = () => {
         // set active student count from API stats
         setTotalStudentCount(stats.active);
       })
-      .catch(err => console.error('load failed', err))
+      .catch((err) => console.error("load failed", err))
       .finally(() => setLoading(false));
   }, [tokens, user]);
 
-  const filteredCourses = courses.filter(course => 
-    course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    course.description.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredCourses = courses.filter(
+    (course) =>
+      course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.description.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const handleCourseAction = (action: string, courseId: string) => {
     console.log(`Action: ${action} on course: ${courseId}`);
-    const target = courses.find(c => c.id === courseId);
+    const target = courses.find((c) => c.id === courseId);
     if (!target) return;
-    if (action === 'edit') {
+    if (action === "edit") {
       setEditingId(courseId);
       setFormData({
         title: target.title,
         description: target.description,
-        category_id: categories.find(cat => cat.name === target.category)?.id,
+        category_id: categories.find((cat) => cat.name === target.category)?.id,
         difficulty: target.difficulty,
         total_lessons: target.totalLessons,
       });
       setShowModal(true);
-    } else if (action === 'view') {
+    } else if (action === "view") {
       // navigate to analytics if implemented
-    } else if (action === 'delete') {
-      if (window.confirm("Kursni o'chirmoqchimisiz?")) {
-        deleteCourse(courseId)
-          .then(() => setCourses(c => c.filter(x => x.id !== courseId)))
-          .catch(err => console.error('delete failed', err));
-      }
+    } else if (action === "delete") {
+      setDeleteConfirm({ id: courseId, title: target.title });
     }
   };
 
   const resetForm = () => {
     setEditingId(null);
     setFormData({
-      title: '',
-      description: '',
+      title: "",
+      description: "",
       category_id: undefined,
-      difficulty: 'beginner',
+      difficulty: "beginner",
       total_lessons: 0,
     });
+  };
+  const handleDeleteConfirm = () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
+    deleteCourse(deleteConfirm.id)
+      .then(() => {
+        setCourses((c) => c.filter((x) => x.id !== deleteConfirm.id));
+        setDeleteConfirm(null);
+      })
+      .catch((err) => console.error("delete failed", err))
+      .finally(() => setDeleting(false));
   };
 
   const handleSave = () => {
     if (!tokens) return;
     const payload: CoursePayload = {
-      title: formData.title || '',
-      description: formData.description || '',
+      title: formData.title || "",
+      description: formData.description || "",
       category_id: formData.category_id,
       difficulty: formData.difficulty as any,
       total_lessons: formData.total_lessons || 0,
       // include thumbnail file if one has been selected
       thumbnail: formData.thumbnail,
     };
-    console.log('handleSave payload', payload);
+    console.log("handleSave payload", payload);
     const op = editingId
       ? updateCourse(editingId, payload, user?.id)
       : createCourse(payload, user?.id);
-    op
-      .then(c => {
-        if (editingId) {
-          setCourses(cs => cs.map(x => (x.id === editingId ? c : x)));
-        } else {
-          setCourses(cs => [c, ...cs]);
-        }
-      })
-      .catch(err => console.error('save failed', err))
+    op.then((c) => {
+      if (editingId) {
+        setCourses((cs) => cs.map((x) => (x.id === editingId ? c : x)));
+      } else {
+        setCourses((cs) => [c, ...cs]);
+      }
+    })
+      .catch((err) => console.error("save failed", err))
       .finally(() => {
         setShowModal(false);
         resetForm();
@@ -144,7 +157,11 @@ const InstructorCoursesPage: React.FC = () => {
   };
 
   return (
-    <DashboardLayout role="instructor" title="Mening kurslarim" userName="O'qituvchi">
+    <DashboardLayout
+      role="instructor"
+      title="Mening kurslarim"
+      userName="O'qituvchi"
+    >
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -189,7 +206,9 @@ const InstructorCoursesPage: React.FC = () => {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">O'rtacha baholash</p>
+                <p className="text-sm text-muted-foreground">
+                  O'rtacha baholash
+                </p>
                 <p className="text-2xl font-bold mt-1">4.8</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
@@ -235,36 +254,36 @@ const InstructorCoursesPage: React.FC = () => {
             {/* View Mode */}
             <div className="flex items-center gap-2 border-l border-border/50 pl-4">
               <button
-                onClick={() => setViewMode('grid')}
+                onClick={() => setViewMode("grid")}
                 className={cn(
-                  'p-2 rounded-lg transition-all',
-                  viewMode === 'grid'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted/50 text-muted-foreground hover:text-foreground'
+                  "p-2 rounded-lg transition-all",
+                  viewMode === "grid"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/50 text-muted-foreground hover:text-foreground",
                 )}
                 title="Grid ko'rinish"
               >
                 <Grid3x3 className="w-5 h-5" />
               </button>
               <button
-                onClick={() => setViewMode('list')}
+                onClick={() => setViewMode("list")}
                 className={cn(
-                  'p-2 rounded-lg transition-all',
-                  viewMode === 'list'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted/50 text-muted-foreground hover:text-foreground'
+                  "p-2 rounded-lg transition-all",
+                  viewMode === "list"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/50 text-muted-foreground hover:text-foreground",
                 )}
                 title="Ro'yxat ko'rinish"
               >
                 <List className="w-5 h-5" />
               </button>
               <button
-                onClick={() => setViewMode('manage')}
+                onClick={() => setViewMode("manage")}
                 className={cn(
-                  'p-2 rounded-lg transition-all',
-                  viewMode === 'manage'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted/50 text-muted-foreground hover:text-foreground'
+                  "p-2 rounded-lg transition-all",
+                  viewMode === "manage"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/50 text-muted-foreground hover:text-foreground",
                 )}
                 title="Boshqarish ko'rinish"
               >
@@ -275,7 +294,7 @@ const InstructorCoursesPage: React.FC = () => {
         </motion.div>
 
         {/* Courses Display */}
-        {viewMode === 'manage' ? (
+        {viewMode === "manage" ? (
           // Management View
           <div className="space-y-2">
             {filteredCourses.length > 0 ? (
@@ -289,11 +308,12 @@ const InstructorCoursesPage: React.FC = () => {
                   <CourseManagementPanel
                     course={course}
                     onLessonCountUpdate={(count) => {
-                      setCourses(cs => 
-                        cs.map(c => c.id === course.id 
-                          ? { ...c, totalLessons: count }
-                          : c
-                        )
+                      setCourses((cs) =>
+                        cs.map((c) =>
+                          c.id === course.id
+                            ? { ...c, totalLessons: count }
+                            : c,
+                        ),
                       );
                     }}
                   />
@@ -307,12 +327,14 @@ const InstructorCoursesPage: React.FC = () => {
           </div>
         ) : (
           // Grid/List View
-          <div className={cn(
-            'grid gap-6',
-            viewMode === 'grid' 
-              ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
-              : 'grid-cols-1'
-          )}>
+          <div
+            className={cn(
+              "grid gap-6",
+              viewMode === "grid"
+                ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                : "grid-cols-1",
+            )}
+          >
             {filteredCourses.map((course, index) => (
               <motion.div
                 key={course.id}
@@ -338,7 +360,9 @@ const InstructorCoursesPage: React.FC = () => {
           >
             <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">Kurslar topilmadi</h3>
-            <p className="text-muted-foreground mb-4">Qidiruvni o'zgartiring yoki yangi kurs yarating</p>
+            <p className="text-muted-foreground mb-4">
+              Qidiruvni o'zgartiring yoki yangi kurs yarating
+            </p>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -376,44 +400,64 @@ const InstructorCoursesPage: React.FC = () => {
               >
                 <div className="glass-card w-full max-w-lg max-h-[90vh] flex flex-col">
                   <h2 className="font-display font-bold text-2xl mb-4 p-6 pb-0">
-                    {editingId ? 'Kursni tahrirlash' : 'Yangi kurs yaratish'}
+                    {editingId ? "Kursni tahrirlash" : "Yangi kurs yaratish"}
                   </h2>
-                  
+
                   <div className="flex-1 overflow-y-auto p-6 space-y-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Kurs nomi</label>
+                      <label className="block text-sm font-medium mb-2">
+                        Kurs nomi
+                      </label>
                       <input
                         type="text"
                         placeholder="Masalan: JavaScript asoslari"
-                        value={formData.title || ''}
-                        onChange={e => setFormData(f => ({ ...f, title: e.target.value }))}
+                        value={formData.title || ""}
+                        onChange={(e) =>
+                          setFormData((f) => ({ ...f, title: e.target.value }))
+                        }
                         className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-2">Tavsif</label>
+                      <label className="block text-sm font-medium mb-2">
+                        Tavsif
+                      </label>
                       <textarea
                         rows={3}
                         placeholder="Kurs haqida qisqacha ma'lumot..."
-                        value={formData.description || ''}
-                        onChange={e => setFormData(f => ({ ...f, description: e.target.value }))}
+                        value={formData.description || ""}
+                        onChange={(e) =>
+                          setFormData((f) => ({
+                            ...f,
+                            description: e.target.value,
+                          }))
+                        }
                         className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"
                       />
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
                       <div>
-                        <label className="block text-sm font-medium mb-2">Kategoriya</label>
+                        <label className="block text-sm font-medium mb-2">
+                          Kategoriya
+                        </label>
                         <div className="flex gap-2">
                           <select
                             className="flex-1 px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                            value={formData.category_id || ''}
-                            onChange={e => setFormData(f => ({ ...f, category_id: Number(e.target.value) }))}
+                            value={formData.category_id || ""}
+                            onChange={(e) =>
+                              setFormData((f) => ({
+                                ...f,
+                                category_id: Number(e.target.value),
+                              }))
+                            }
                           >
                             <option value="">--kategoriya tanlang--</option>
-                            {categories.map(cat => (
-                              <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            {categories.map((cat) => (
+                              <option key={cat.id} value={cat.id}>
+                                {cat.name}
+                              </option>
                             ))}
                           </select>
                           <button
@@ -428,11 +472,18 @@ const InstructorCoursesPage: React.FC = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium mb-2">Daraja</label>
+                        <label className="block text-sm font-medium mb-2">
+                          Daraja
+                        </label>
                         <select
                           className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                           value={formData.difficulty}
-                          onChange={e => setFormData(f => ({ ...f, difficulty: e.target.value as any }))}
+                          onChange={(e) =>
+                            setFormData((f) => ({
+                              ...f,
+                              difficulty: e.target.value as any,
+                            }))
+                          }
                         >
                           <option value="beginner">Boshlang'ich</option>
                           <option value="intermediate">O'rta</option>
@@ -442,24 +493,33 @@ const InstructorCoursesPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-2">Darslar soni</label>
+                      <label className="block text-sm font-medium mb-2">
+                        Darslar soni
+                      </label>
                       <input
                         type="number"
                         min={0}
                         value={formData.total_lessons ?? 0}
-                        onChange={e => setFormData(f => ({ ...f, total_lessons: Number(e.target.value) }))}
+                        onChange={(e) =>
+                          setFormData((f) => ({
+                            ...f,
+                            total_lessons: Number(e.target.value),
+                          }))
+                        }
                         className="w-full px-4 py-2 rounded-lg bg-muted/50 border border-border/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium mb-2">Muqova rasmi (ixtiyoriy)</label>
+                      <label className="block text-sm font-medium mb-2">
+                        Muqova rasmi (ixtiyoriy)
+                      </label>
                       <input
                         type="file"
                         accept="image/*"
-                        onChange={e => {
+                        onChange={(e) => {
                           const file = e.target.files?.[0];
-                          setFormData(f => ({ ...f, thumbnail: file }));
+                          setFormData((f) => ({ ...f, thumbnail: file }));
                         }}
                         className="w-full"
                       />
@@ -484,6 +544,64 @@ const InstructorCoursesPage: React.FC = () => {
                       className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:shadow-lg hover:shadow-primary/25 transition-all"
                     >
                       Yaratish
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+          {deleteConfirm && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => !deleting && setDeleteConfirm(null)}
+                className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="fixed inset-0 flex items-center justify-center z-50 p-4"
+              >
+                <div className="glass-card w-full max-w-sm p-6 text-center">
+                  {/* Icon */}
+                  <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                    <Trash2 className="w-6 h-6 text-destructive" />
+                  </div>
+
+                  <h3 className="font-semibold text-lg mb-2">
+                    Kursni o'chirish
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-6">
+                    <span className="font-medium text-foreground">
+                      "{deleteConfirm.title}"
+                    </span>{" "}
+                    kursini o'chirasizmi? Bu amalni qaytarib bo'lmaydi.
+                  </p>
+
+                  <div className="flex gap-3">
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setDeleteConfirm(null)}
+                      disabled={deleting}
+                      className="flex-1 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 font-medium transition-all disabled:opacity-50"
+                    >
+                      Bekor qilish
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleDeleteConfirm}
+                      disabled={deleting}
+                      className="flex-1 px-4 py-2 rounded-lg bg-destructive text-destructive-foreground font-medium hover:bg-destructive/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {deleting ? (
+                        <Clock className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                      {deleting ? "O'chirilmoqda..." : "O'chirish"}
                     </motion.button>
                   </div>
                 </div>

@@ -349,7 +349,7 @@ export const refreshAccessToken = async (
   refreshToken: string
 ): Promise<{ access: string }> => {
   const response = await fetch(
-    `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api/token/refresh/`,
+    `${API_BASE_URL || "http://localhost:8000"}/token/refresh/`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
