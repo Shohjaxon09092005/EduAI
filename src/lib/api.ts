@@ -447,10 +447,10 @@ export const getLessons = async (courseId: number): Promise<Lesson[]> => {
   }
   const data: ApiLesson[] = await response.json();
   console.log('API Lessons response:', data);
-  
+
   const baseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
   console.log('Base URL for resources:', baseUrl);
-  
+
   return data.map((l) => ({
     id: String(l.id),
     title: l.title,
@@ -467,9 +467,9 @@ export const getLessons = async (courseId: number): Promise<Lesson[]> => {
         // File field contains the relative path, need to prefix with base URL
         url = `${r.file}`;
       }
-      
+
       console.log(`Resource "${r.title}": url=${r.url}, file=${r.file}, final=${url}`);
-      
+
       return {
         id: String(r.id),
         title: r.title,
@@ -540,7 +540,7 @@ export const createLessonResource = async (data: LessonResourcePayload): Promise
 
   const r: ApiLessonResource = await response.json();
   console.log('Created lesson resource:', r);
-  
+
   // Ensure URL is properly constructed
   let url: string | undefined;
   if (r.url && r.url.trim()) {
@@ -549,7 +549,7 @@ export const createLessonResource = async (data: LessonResourcePayload): Promise
     const baseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
     url = `${baseUrl}${r.file}`;
   }
-  
+
   return {
     id: String(r.id),
     title: r.title,
@@ -629,7 +629,7 @@ export const updateLessonResource = async (id: string, data: Partial<LessonResou
 
   const r: ApiLessonResource = await response.json();
   console.log('Updated lesson resource:', r);
-  
+
   // Ensure URL is properly constructed
   let url: string | undefined;
   if (r.url && r.url.trim()) {
@@ -638,7 +638,7 @@ export const updateLessonResource = async (id: string, data: Partial<LessonResou
     const baseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
     url = `${r.file}`;
   }
-  
+
   return {
     id: String(r.id),
     title: r.title,
@@ -667,6 +667,10 @@ export interface ApiQuestion {
   options: string[];
   correct_answer: number;
   explanation?: string;
+  image?: string;
+  image_caption?: string;
+  image_position?: 'top' | 'right' | 'bottom' | 'left';
+  points?: number;
 }
 
 export interface ApiTest {
@@ -715,6 +719,11 @@ export const getTests = async (courseId?: number): Promise<Test[]> => {
       options: q.options,
       correctAnswer: q.correct_answer,
       explanation: q.explanation,
+      image: q.image || undefined,
+      imageCaption: q.image_caption || undefined,
+      imagePosition: q.image_position || undefined,
+      points: q.points ?? 1,
+      
     })) || [],
   }));
 };
@@ -739,6 +748,10 @@ export const getTest = async (id: string): Promise<Test> => {
       options: q.options,
       correctAnswer: q.correct_answer,
       explanation: q.explanation,
+      image: q.image || undefined,
+      imageCaption: q.image_caption || undefined,
+      imagePosition: q.image_position || undefined,
+      points: q.points ?? 1,
     })) || [],
   };
 };
@@ -814,6 +827,40 @@ export const deleteTest = async (id: string): Promise<void> => {
     throw new Error('Failed to delete test');
   }
 };
+// Question endpoints (rasm bilan ishlash uchun)
+export const addQuestion = async (testId: string, data: FormData): Promise<void> => {
+  const response = await apiFetch(`/tests/${testId}/add-question/`, {
+    method: 'POST',
+    body: data,
+    // Content-Type header qo'shilmaydi — browser o'zi multipart boundary qo'yadi
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to add question');
+  }
+  return response.json();
+};
+
+export const updateQuestion = async (questionId: string, data: FormData): Promise<void> => {
+  const response = await apiFetch(`/tests/question/${questionId}/`, {
+    method: 'PATCH',
+    body: data,
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to update question');
+  }
+  return response.json();
+};
+
+export const deleteQuestion = async (questionId: string): Promise<void> => {
+  const response = await apiFetch(`/tests/question/${questionId}/`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to delete question');
+  }
+};
 
 export const getResources = async (courseId?: number): Promise<Resource[]> => {
   let path = `/resources/`;
@@ -835,10 +882,10 @@ export const getResources = async (courseId?: number): Promise<Resource[]> => {
     uploadedAt: new Date(r.uploaded_at),
     size: r.size,
     aiTopics: Array.isArray(r.ai_topics)
-  ? r.ai_topics.map((t: string) => String(t).trim()).filter(Boolean)
-  : r.ai_topics
-  ? String(r.ai_topics).split(',').map(t => t.trim()).filter(Boolean)
-  : [],
+      ? r.ai_topics.map((t: string) => String(t).trim()).filter(Boolean)
+      : r.ai_topics
+        ? String(r.ai_topics).split(',').map(t => t.trim()).filter(Boolean)
+        : [],
     courseId: String(r.course),
     category: r.category?.name || 'Boshqa',
   }));
@@ -896,10 +943,10 @@ export const createResource = async (
     uploadedAt: new Date(r.uploaded_at),
     size: r.size,
     aiTopics: Array.isArray(r.ai_topics)
-  ? r.ai_topics.map((t: string) => String(t).trim()).filter(Boolean)
-  : r.ai_topics
-  ? String(r.ai_topics).split(',').map(t => t.trim()).filter(Boolean)
-  : [],
+      ? r.ai_topics.map((t: string) => String(t).trim()).filter(Boolean)
+      : r.ai_topics
+        ? String(r.ai_topics).split(',').map(t => t.trim()).filter(Boolean)
+        : [],
     courseId: String(r.course),
     category: r.category?.name || 'Boshqa',
   };
@@ -949,10 +996,10 @@ export const updateResource = async (
     uploadedAt: new Date(r.uploaded_at),
     size: r.size,
     aiTopics: Array.isArray(r.ai_topics)
-  ? r.ai_topics.map((t: string) => String(t).trim()).filter(Boolean)
-  : r.ai_topics
-  ? String(r.ai_topics).split(',').map(t => t.trim()).filter(Boolean)
-  : [],
+      ? r.ai_topics.map((t: string) => String(t).trim()).filter(Boolean)
+      : r.ai_topics
+        ? String(r.ai_topics).split(',').map(t => t.trim()).filter(Boolean)
+        : [],
     courseId: String(r.course),
     category: r.category?.name || 'Boshqa',
   };
@@ -971,7 +1018,7 @@ const api = {
       const queryString = new URLSearchParams(options.params).toString();
       finalPath = queryString ? `${path}?${queryString}` : path;
     }
-    
+
     const response = await apiFetch(finalPath, {
       ...options,
       method: 'GET',
@@ -1105,6 +1152,7 @@ export interface ApiTestResult {
   correct_answers: number;
   total_questions: number;
   created_at: string;
+  earned_points?: number;
 }
 
 export const submitTestResult = async (payload: TestResultPayload): Promise<ApiTestResult> => {

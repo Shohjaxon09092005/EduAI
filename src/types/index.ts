@@ -104,6 +104,10 @@ export interface Question {
   options: string[];
   correctAnswer?: number;
   explanation?: string;
+  image?: string;
+  imageCaption?: string;
+  imagePosition?: 'top' | 'right' | 'bottom' | 'left';
+  points?: number;
 }
 
 export interface QuizResult {

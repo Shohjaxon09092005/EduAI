@@ -1,7 +1,7 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Eye } from 'lucide-react';
-import { Question } from '@/types';
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Eye } from "lucide-react";
+import { Question } from "@/types";
 
 interface Test {
   id: string;
@@ -9,7 +9,7 @@ interface Test {
   courseTitle?: string;
   questions: Question[];
   duration: number;
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: "easy" | "medium" | "hard";
 }
 
 interface TestResult {
@@ -41,12 +41,12 @@ export const TestViewModal: React.FC<TestViewModalProps> = ({
 
   const difficultyLabel = (d: string) => {
     switch (d) {
-      case 'easy':
+      case "easy":
         return "Boshlang'ich";
-      case 'medium':
+      case "medium":
         return "O'rta";
-      case 'hard':
-        return 'Murakkab';
+      case "hard":
+        return "Murakkab";
       default:
         return d;
     }
@@ -68,9 +68,12 @@ export const TestViewModal: React.FC<TestViewModalProps> = ({
         >
           <div className="flex items-center justify-between p-6 border-b border-border/50 sticky top-0 bg-background/95 backdrop-blur">
             <h2 className="text-2xl font-display font-bold">
-              {result ? 'Natija tafsilotlari' : 'Testni ko‘rish'}
+              {result ? "Natija tafsilotlari" : "Testni ko‘rish"}
             </h2>
-            <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg transition-colors">
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -113,10 +116,32 @@ export const TestViewModal: React.FC<TestViewModalProps> = ({
               <h3 className="font-semibold">Savollar</h3>
               {testData.questions.map((q, qi) => (
                 <div key={qi} className="p-4 border rounded-lg bg-muted/50">
-                  <p className="font-medium mb-2">{qi + 1}. {q.text}</p>
+                  <p className="font-medium mb-2">
+                    {qi + 1}. {q.text}
+                  </p>
+                  {q.image && (
+                    <img
+                      src={q.image}
+                      alt={q.imageCaption  || "savol rasmi"}
+                      className={`rounded-lg max-h-48 object-contain mb-2 ${
+                        q.imagePosition  === "right"
+                          ? "float-right ml-3"
+                          : q.imagePosition === "left"
+                            ? "float-left mr-3"
+                            : "w-full"
+                      }`}
+                    />
+                  )}
                   <ul className="list-disc list-inside space-y-1 text-sm">
                     {q.options.map((opt, oi) => (
-                      <li key={oi} className={q.correctAnswer === oi ? 'font-semibold text-success' : ''}>
+                      <li
+                        key={oi}
+                        className={
+                          q.correctAnswer === oi
+                            ? "font-semibold text-success"
+                            : ""
+                        }
+                      >
                         {opt}
                       </li>
                     ))}

@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Sparkles, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Sparkles,
+  Clock,
+  CheckCircle,
+  XCircle,
   ArrowRight,
   Brain,
   Loader2,
-  AlertCircle
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Question, Test } from '@/types';
-import api from '@/lib/api';
-import { toast } from 'sonner';
+  AlertCircle,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Question, Test } from "@/types";
+import api from "@/lib/api";
+import { toast } from "sonner";
 
 interface AITestProps {
   title: string;
@@ -30,8 +30,11 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
   duration = 0,
   onComplete,
 }) => {
-  const [questions, setQuestions] = useState<Question[]>(initialQuestions || []);
-  const [isLoadingQuestions, setIsLoadingQuestions] = useState(!initialQuestions);
+  const [questions, setQuestions] = useState<Question[]>(
+    initialQuestions || [],
+  );
+  const [isLoadingQuestions, setIsLoadingQuestions] =
+    useState(!initialQuestions);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>([]);
   const [showResult, setShowResult] = useState(false);
@@ -40,7 +43,12 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
   const [timeLeft, setTimeLeft] = useState(duration * 60);
   const [timeStarted] = useState(Date.now());
   const [error, setError] = useState<string | null>(null);
-
+  // State qo'shish
+  const [finalScore, setFinalScore] = useState<{
+    score: number;
+    earned: number;
+    total: number;
+  } | null>(null);
   // Load questions from API if not provided
   useEffect(() => {
     if (!initialQuestions && testId) {
@@ -51,9 +59,9 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
           setQuestions(testQuestions);
           setSelectedAnswers(new Array(testQuestions.length).fill(null));
         } catch (error) {
-          console.error('Failed to load questions:', error);
-          toast.error('Savollarni yuklashda xato');
-          setError('Savollarni yuklayolmaymiz');
+          console.error("Failed to load questions:", error);
+          toast.error("Savollarni yuklashda xato");
+          setError("Savollarni yuklayolmaymiz");
         } finally {
           setIsLoadingQuestions(false);
         }
@@ -72,33 +80,44 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
 
   // calculating score may change when questions/answers update
   const calculateScore = React.useCallback(() => {
-    if (questions.length === 0) return 0;
-    let correct = 0;
+    if (questions.length === 0) return { score: 0, earned: 0, total: 0 };
+
+    let earned = 0;
+    let total = 0;
+
     questions.forEach((q, i) => {
-      if (selectedAnswers[i] === q.correctAnswer) correct++;
+      const pts = q.points ?? 1;
+      total += pts;
+      if (selectedAnswers[i] === q.correctAnswer) {
+        earned += pts;
+      }
     });
-    return Math.round((correct / questions.length) * 100);
+
+    return {
+      score: Math.round((earned / Math.max(total, 1)) * 100),
+      earned,
+      total,
+    };
   }, [questions, selectedAnswers]);
 
   // calculate score on demand inside finishTest
   const finishTest = React.useCallback(async () => {
-    const currentScore = calculateScore();
+    const result = calculateScore();
     const timeSpentSeconds = Math.round((Date.now() - timeStarted) / 1000);
-    
+
+    setFinalScore(result); // ← state ga saqlanadi
     setIsAnalyzing(true);
     setError(null);
 
     try {
-      // Submit to backend if testId is provided
       if (testId) {
         setIsSubmitting(true);
-        const answersList = selectedAnswers.map(a => a ?? -1);
-        const response = await api.post(`/test-results/`, {
+        await api.post(`/test-results/`, {
           test: testId,
-          answers: answersList,
+          answers: selectedAnswers.map((a) => a ?? -1),
           time_spent: timeSpentSeconds,
         });
-        toast.success('Test natijalari saqlandi');
+        toast.success("Test natijalari saqlandi");
       }
 
       setTimeout(() => {
@@ -106,28 +125,30 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
         setIsSubmitting(false);
         setShowResult(true);
         if (onComplete) {
-          onComplete(currentScore, selectedAnswers.map(a => a ?? -1));
+          onComplete(
+            result.score,
+            selectedAnswers.map((a) => a ?? -1),
+          );
         }
       }, 1500);
     } catch (err: any) {
-      console.error('Test submission error:', err);
-      setError(err.message || 'Test saqlashda xatolik');
+      setError(err.message || "Test saqlashda xatolik");
       setIsAnalyzing(false);
       setIsSubmitting(false);
-      toast.error('Test natijalari saqlanmadi');
+      toast.error("Test natijalari saqlanmadi");
     }
   }, [calculateScore, timeStarted, selectedAnswers, testId, onComplete]);
 
   const handleNext = () => {
     if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(prev => prev + 1);
+      setCurrentQuestion((prev) => prev + 1);
     } else {
       finishTest();
     }
   };
 
   // note: score computed when needed by finishTest and when showing results
-  const score = calculateScore();
+  const { score, earned, total } = calculateScore();
   const question = questions[currentQuestion];
 
   // timer effect
@@ -141,14 +162,14 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
       finishTest();
       return;
     }
-    const id = setInterval(() => setTimeLeft(t => t - 1), 1000);
+    const id = setInterval(() => setTimeLeft((t) => t - 1), 1000);
     return () => clearInterval(id);
   }, [timeLeft, showResult, isAnalyzing, finishTest]);
 
   // Auto-submit if time's up
   useEffect(() => {
     if (timeLeft === 0 && duration > 0 && !showResult && !isAnalyzing) {
-      toast.warning('Vaqt tugadi!');
+      toast.warning("Vaqt tugadi!");
       finishTest();
     }
   }, [timeLeft, duration, showResult, isAnalyzing, finishTest]);
@@ -162,13 +183,15 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
       >
         <motion.div
           animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
           className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center"
         >
           <Brain className="w-10 h-10 text-primary-foreground" />
         </motion.div>
         <h3 className="font-display font-semibold text-xl mb-2">
-          {isSubmitting ? 'Natijalari saqlanmoqda...' : 'AI javoblarni tahlil qilmoqda...'}
+          {isSubmitting
+            ? "Natijalari saqlanmoqda..."
+            : "AI javoblarni tahlil qilmoqda..."}
         </h3>
         <p className="text-muted-foreground">Biroz kuting</p>
       </motion.div>
@@ -215,18 +238,22 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
       >
         <motion.div
           animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
           className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center"
         >
           <Brain className="w-10 h-10 text-primary-foreground" />
         </motion.div>
-        <h3 className="font-display font-semibold text-xl mb-2">AI javoblarni tahlil qilmoqda...</h3>
+        <h3 className="font-display font-semibold text-xl mb-2">
+          AI javoblarni tahlil qilmoqda...
+        </h3>
         <p className="text-muted-foreground">Biroz kuting</p>
       </motion.div>
     );
   }
 
   if (showResult) {
+    const displayScore = finalScore ?? { score: 0, earned: 0, total: 0 };
+
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
@@ -237,10 +264,12 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ type: 'spring', delay: 0.2 }}
+            transition={{ type: "spring", delay: 0.2 }}
             className={cn(
               "w-24 h-24 mx-auto mb-4 rounded-2xl flex items-center justify-center",
-              score >= 70 ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'
+              score >= 70
+                ? "bg-success/20 text-success"
+                : "bg-destructive/20 text-destructive",
             )}
           >
             {score >= 70 ? (
@@ -249,11 +278,16 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
               <XCircle className="w-12 h-12" />
             )}
           </motion.div>
-          <h3 className="font-display font-bold text-3xl mb-2">{score}%</h3>
+          <h3 className="font-display font-bold text-3xl mb-2">{displayScore.score}%</h3>
+          <p className="text-lg font-medium text-muted-foreground mb-2">
+            {displayScore.earned} / {displayScore.total} ball
+          </p>
           <p className="text-muted-foreground">
-            {score >= 90 ? "Ajoyib natija!" : 
-             score >= 70 ? "Yaxshi natija!" : 
-             "Ko'proq mashq qiling!"}
+            {score >= 90
+              ? "Ajoyib natija!"
+              : score >= 70
+                ? "Yaxshi natija!"
+                : "Ko'proq mashq qiling!"}
           </p>
         </div>
 
@@ -270,14 +304,20 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
                 transition={{ delay: i * 0.1 }}
                 className={cn(
                   "p-4 rounded-xl border-2",
-                  isCorrect ? 'border-success/30 bg-success/5' : 'border-destructive/30 bg-destructive/5'
+                  isCorrect
+                    ? "border-success/30 bg-success/5"
+                    : "border-destructive/30 bg-destructive/5",
                 )}
               >
                 <div className="flex items-start gap-3">
-                  <div className={cn(
-                    "w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
-                    isCorrect ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'
-                  )}>
+                  <div
+                    className={cn(
+                      "w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
+                      isCorrect
+                        ? "bg-success text-success-foreground"
+                        : "bg-destructive text-destructive-foreground",
+                    )}
+                  >
                     {isCorrect ? (
                       <CheckCircle className="w-4 h-4" />
                     ) : (
@@ -286,18 +326,30 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-sm mb-2">{q.text}</p>
+                    {/* Natijada rasm */}
+                    {q.image && (
+                      <img
+                        src={q.image}
+                        alt={q.imageCaption || ""}
+                        className="rounded-lg max-h-32 object-contain mb-2"
+                      />
+                    )}
                     <p className="text-sm">
-                      <span className="font-medium">Sizning javobingiz:</span>{' '}
-                      {selected !== null && selected >= 0 ? q.options[selected] : '–'}
+                      <span className="font-medium">Sizning javobingiz:</span>{" "}
+                      {selected !== null && selected >= 0
+                        ? q.options[selected]
+                        : "–"}
                     </p>
                     {!isCorrect && (
                       <p className="text-sm text-success">
-                        <span className="font-medium">To'g'ri javob:</span>{' '}
+                        <span className="font-medium">To'g'ri javob:</span>{" "}
                         {q.options[q.correctAnswer]}
                       </p>
                     )}
                     {q.explanation && (
-                      <p className="text-xs text-muted-foreground mt-1">{q.explanation}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {q.explanation}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -314,6 +366,7 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
             setCurrentQuestion(0);
             setSelectedAnswers(new Array(questions.length).fill(null));
             setShowResult(false);
+            setFinalScore(null);  
           }}
         >
           Qayta urinish
@@ -334,15 +387,24 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              <span>Savol {currentQuestion + 1}/{questions.length}</span>
+              <span>
+                Savol {currentQuestion + 1}/{questions.length}
+              </span>
             </div>
             {duration > 0 && (
-              <div className={cn(
-                'flex items-center gap-2 px-2 py-1 rounded-lg',
-                timeLeft <= 60 ? 'bg-destructive/10 text-destructive font-medium' : ''
-              )}>
+              <div
+                className={cn(
+                  "flex items-center gap-2 px-2 py-1 rounded-lg",
+                  timeLeft <= 60
+                    ? "bg-destructive/10 text-destructive font-medium"
+                    : "",
+                )}
+              >
                 <Clock className="w-4 h-4" />
-                <span>{Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}</span>
+                <span>
+                  {Math.floor(timeLeft / 60)}:
+                  {String(timeLeft % 60).padStart(2, "0")}
+                </span>
               </div>
             )}
           </div>
@@ -351,7 +413,9 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
         <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
-            animate={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
+            animate={{
+              width: `${((currentQuestion + 1) / questions.length) * 100}%`,
+            }}
             className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
           />
         </div>
@@ -367,7 +431,35 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
             exit={{ opacity: 0, x: -50 }}
           >
             <h4 className="font-medium text-lg mb-6">{question.text}</h4>
-
+            {/* Rasm */}
+            {question.image && (
+              <div
+                className={cn(
+                  "mb-4",
+                  question.imagePosition === "right" &&
+                    "flex gap-4 items-start",
+                  question.imagePosition === "left" &&
+                    "flex flex-row-reverse gap-4 items-start",
+                )}
+              >
+                <img
+                  src={question.image}
+                  alt={question.imageCaption || "savol rasmi"}
+                  className={cn(
+                    "rounded-xl object-contain max-h-56",
+                    question.imagePosition === "right" ||
+                      question.imagePosition === "left"
+                      ? "w-1/2"
+                      : "w-full",
+                  )}
+                />
+                {question.imageCaption && (
+                  <p className="text-xs text-muted-foreground mt-1 text-center">
+                    {question.imageCaption}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="space-y-3">
               {question.options.map((option, i) => (
                 <motion.button
@@ -378,17 +470,19 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
                   className={cn(
                     "w-full p-4 rounded-xl border-2 text-left transition-all duration-200",
                     selectedAnswers[currentQuestion] === i
-                      ? 'border-primary bg-primary/10 shadow-lg shadow-primary/10'
-                      : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                      ? "border-primary bg-primary/10 shadow-lg shadow-primary/10"
+                      : "border-border hover:border-primary/50 hover:bg-muted/50",
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-sm",
-                      selectedAnswers[currentQuestion] === i
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    )}>
+                    <div
+                      className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-sm",
+                        selectedAnswers[currentQuestion] === i
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
                       {String.fromCharCode(65 + i)}
                     </div>
                     <span className="flex-1">{option}</span>
@@ -407,8 +501,8 @@ export const AITest: React.FC<Partial<AITestProps>> = ({
           className={cn(
             "w-full mt-6 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all",
             selectedAnswers[currentQuestion] !== null
-              ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground'
-              : 'bg-muted text-muted-foreground cursor-not-allowed'
+              ? "bg-gradient-to-r from-primary to-accent text-primary-foreground"
+              : "bg-muted text-muted-foreground cursor-not-allowed",
           )}
         >
           {currentQuestion < questions.length - 1 ? (
