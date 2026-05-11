@@ -64,7 +64,7 @@ const Register = () => {
       <div className="w-full max-w-md glass-card p-8">
         <h2 className="text-2xl font-bold mb-6 capitalize">
           {role === "instructor"
-            ? "Domla ro'yxatdan o'tishi"
+            ? "O'qituvchi ro'yxatdan o'tishi"
             : role === "admin"
               ? "Admin ro'yxatdan o'tishi"
               : role === "student"
