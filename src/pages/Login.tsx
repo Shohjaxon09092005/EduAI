@@ -52,7 +52,7 @@ const Login = () => {
       <div className="w-full max-w-md glass-card p-8">
         <h2 className="text-2xl font-bold mb-6 capitalize">
           {role === "instructor"
-            ? "Domla kirishi"
+            ? "O'qituvchi kirishi"
             : role === "admin"
               ? "Admin kirishi"
               : role === "student"

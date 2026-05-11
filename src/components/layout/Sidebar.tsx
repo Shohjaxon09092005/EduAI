@@ -71,11 +71,11 @@ const getLinksByRole = (role: UserRole) => {
 const getRoleTitle = (role: UserRole) => {
   switch (role) {
     case "admin":
-      return "Admin Panel";
+      return "Admin Paneli";
     case "instructor":
-      return "Domla Panel";
+      return "O'qituvchi Paneli";
     case "student":
-      return "Talaba Panel";
+      return "Talaba Paneli";
     default:
       return "Panel";
   }
