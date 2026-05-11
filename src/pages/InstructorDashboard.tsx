@@ -176,7 +176,7 @@ const InstructorDashboard: React.FC = () => {
   };
 
   return (
-    <DashboardLayout role="instructor" title="Domla paneli" userName={user?.name || user?.first_name || user?.email || 'Domla'}>
+    <DashboardLayout role="instructor" title="O'qituvchi paneli" userName={user?.name || user?.first_name || user?.email || "O'qituvchi"}>
       <div className="space-y-6">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
